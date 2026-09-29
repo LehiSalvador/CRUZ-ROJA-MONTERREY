@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "fictitious": true,
+    "seedVersion": 1,
+    "description": "Personas ficticias para la Beta local. No corresponden a personal real; los correos usan dominios reservados para ejemplos."
+  },
+  "users": [
+    {
+      "userId": "a0000000-0000-4000-8000-000000000001",
+      "firstName": "Claudia",
+      "paternalSurname": "Benavides",
+      "maternalSurname": "Rangel",
+      "email": "claudia.benavides@example.org",
+      "role": "AREA_COORDINATOR",
+      "area": "PSYCHOLOGY",
+      "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000002",
+      "firstName": "Héctor",
+      "paternalSurname": "Montemayor",
+      "maternalSurname": "Salazar",
+      "email": "hector.montemayor@example.org",
+      "role": "CLINICAL_ADMIN",
+      "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000003",
+      "firstName": "Mariana",
+      "paternalSurname": "Elizondo",
+      "maternalSurname": "Cantú",
+      "email": "mariana.elizondo@example.org",
+      "role": "PROFESSIONAL",
+      "area": "PSYCHOLOGY",
+      "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000004",
+      "firstName": "Rodrigo",
+      "paternalSurname": "Villarreal",
+      "maternalSurname": "Saldaña",
+      "email": "rodrigo.villarreal@example.org",
+      "role": "PROFESSIONAL",
+      "area": "PSYCHOLOGY",
+      "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000005",
+      "firstName": "Paola",
+      "paternalSurname": "Garza",
+      "maternalSurname": "Leal",
+      "email": "paola.garza@example.org",
+      "role": "PROFESSIONAL",
+      "area": "NUTRITION",
+      "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000006",
+      "firstName": "Eduardo",
+      "paternalSurname": "Treviño",
+      "maternalSurname": "Guajardo",
+      "email": "eduardo.trevino@example.org",
+      "role": "PROFESSIONAL",
+      "area": "GENERAL_MEDICINE",
+      "status": "ACTIVE"
+    }
+  ]
+}

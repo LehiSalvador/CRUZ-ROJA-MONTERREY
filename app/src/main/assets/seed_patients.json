@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "fictitious": true,
+    "seedVersion": 1,
+    "description": "Pacientes ficticios para la Beta local. Los teléfonos están en un rango no asignable y los correos usan dominios reservados para ejemplos."
+  },
+  "patients": [
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000001",
+      "patientNumber": "CRNL-000001",
+      "firstName": "Ana Lucía",
+      "paternalSurname": "Cavazos",
+      "maternalSurname": "Ibarra",
+      "birthDate": "1998-05-14",
+      "birthPlace": "Monterrey, Nuevo León",
+      "sex": "FEMALE",
+      "municipality": "Monterrey",
+      "populationType": "STUDENT",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000003",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000001", "type": "PHONE", "value": "+528100000101", "isPrimary": true },
+        { "contactId": "c0000000-0000-4000-8000-000000000002", "type": "EMAIL", "value": "ana.cavazos@example.org", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000002",
+      "patientNumber": "CRNL-000002",
+      "firstName": "Diego Alejandro",
+      "paternalSurname": "Treviño",
+      "maternalSurname": "Salinas",
+      "birthDate": "2003-11-02",
+      "birthPlace": "Guadalupe, Nuevo León",
+      "sex": "MALE",
+      "municipality": "Guadalupe",
+      "populationType": "STUDENT",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000004",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000003", "type": "PHONE", "value": "+528100000102", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "patientNumber": "CRNL-000003",
+      "firstName": "Fernanda",
+      "paternalSurname": "Guerra",
+      "maternalSurname": "Domínguez",
+      "birthDate": "1987-08-21",
+      "birthPlace": "Monterrey, Nuevo León",
+      "sex": "FEMALE",
+      "municipality": "San Nicolás de los Garza",
+      "populationType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000003",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000004", "type": "PHONE", "value": "+528100000103", "isPrimary": true },
+        { "contactId": "c0000000-0000-4000-8000-000000000005", "type": "EMAIL", "value": "fernanda.guerra@example.org", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000004",
+      "patientNumber": "CRNL-000004",
+      "firstName": "José Manuel",
+      "paternalSurname": "Ochoa",
+      "maternalSurname": "Lozano",
+      "birthDate": "1979-01-30",
+      "birthPlace": "Saltillo, Coahuila",
+      "sex": "MALE",
+      "municipality": "Apodaca",
+      "populationType": "EMPLOYEE_FAMILY",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000006",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000006", "type": "PHONE", "value": "+528100000104", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000005",
+      "patientNumber": "CRNL-000005",
+      "firstName": "Regina",
+      "paternalSurname": "Quiroga",
+      "maternalSurname": "Montes",
+      "birthDate": "2008-02-17",
+      "birthPlace": "Monterrey, Nuevo León",
+      "sex": "FEMALE",
+      "municipality": "Santa Catarina",
+      "populationType": "VOLUNTEER_YOUTH",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000004",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000007", "type": "PHONE", "value": "+528100000105", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000006",
+      "patientNumber": "CRNL-000006",
+      "firstName": "Luis Fernando",
+      "paternalSurname": "Mireles",
+      "maternalSurname": "Cortés",
+      "birthDate": "1992-10-05",
+      "birthPlace": "Reynosa, Tamaulipas",
+      "sex": "MALE",
+      "municipality": "Monterrey",
+      "populationType": "TRAINING_ALUMNI",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000005",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-000000000008", "type": "PHONE", "value": "+528100000106", "isPrimary": true },
+        { "contactId": "c0000000-0000-4000-8000-000000000009", "type": "EMAIL", "value": "luis.mireles@example.org", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000007",
+      "patientNumber": "CRNL-000007",
+      "firstName": "María del Carmen",
+      "paternalSurname": "Sepúlveda",
+      "maternalSurname": "Arriaga",
+      "birthDate": "1965-04-23",
+      "birthPlace": "Cadereyta Jiménez, Nuevo León",
+      "sex": "FEMALE",
+      "municipality": "San Pedro Garza García",
+      "populationType": "GENERAL_PUBLIC",
+      "status": "ACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000006",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-00000000000a", "type": "PHONE", "value": "+528100000107", "isPrimary": true }
+      ]
+    },
+    {
+      "patientId": "b0000000-0000-4000-8000-000000000008",
+      "patientNumber": "CRNL-000008",
+      "firstName": "Andrés",
+      "paternalSurname": "Molina",
+      "maternalSurname": "Peña",
+      "birthDate": "2000-12-19",
+      "birthPlace": "Monterrey, Nuevo León",
+      "sex": "MALE",
+      "municipality": "General Escobedo",
+      "populationType": "CORPORATE_AGREEMENT",
+      "status": "INACTIVE",
+      "createdBy": "a0000000-0000-4000-8000-000000000003",
+      "contacts": [
+        { "contactId": "c0000000-0000-4000-8000-00000000000b", "type": "PHONE", "value": "+528100000108", "isPrimary": true }
+      ]
+    }
+  ]
+}

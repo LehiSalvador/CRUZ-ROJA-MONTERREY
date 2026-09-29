@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Plataforma Clínica CRNL</string>
+
+    <!-- Acciones y estados genéricos -->
+    <string name="action_retry">Reintentar</string>
+    <string name="state_loading">Cargando…</string>
+    <string name="state_error_title">No se pudo cargar la información</string>
+    <string name="state_error_message">Ocurrió un problema al leer los datos. Inténtalo de nuevo.</string>
+
+    <!-- Inicio de la aplicación -->
+    <string name="splash_tagline">Expediente clínico multidisciplinario</string>
+    <string name="splash_error_title">No se pudo iniciar la aplicación</string>
+    <string name="splash_error_message">Ocurrió un problema al preparar la información local. Inténtalo de nuevo.</string>
+
+    <!-- Acceso -->
+    <string name="login_title">Acceso del personal</string>
+    <string name="login_description">Ingresa para consultar pacientes y citas.</string>
+    <string name="login_continue">Continuar</string>
+    <string name="login_error">No se pudo iniciar la sesión. Inténtalo de nuevo.</string>
+
+    <!-- Navegación principal -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_patients">Pacientes</string>
+    <string name="nav_appointments">Citas</string>
+    <string name="nav_requests">Solicitudes</string>
+    <string name="nav_profile">Perfil</string>
+
+    <!-- Inicio -->
+    <string name="home_placeholder_title">Panel de inicio</string>
+    <string name="home_placeholder_message">Aquí verás tus accesos rápidos, próximas citas y pendientes. Este módulo estará disponible en la Beta.</string>
+
+    <!-- Pacientes -->
+    <string name="patients_title">Pacientes</string>
+    <string name="patients_empty_title">Sin pacientes registrados</string>
+    <string name="patients_empty_message">Cuando existan pacientes registrados aparecerán aquí.</string>
+    <plurals name="patient_age_years">
+        <item quantity="one">%d año</item>
+        <item quantity="other">%d años</item>
+    </plurals>
+
+    <!-- Citas -->
+    <string name="appointments_title">Citas</string>
+    <string name="appointments_empty_title">Sin citas programadas</string>
+    <string name="appointments_empty_message">Las citas agendadas aparecerán aquí.</string>
+    <string name="appointments_section_upcoming">Próximas</string>
+    <string name="appointments_section_history">Historial</string>
+
+    <!-- Solicitudes -->
+    <string name="requests_title">Solicitudes</string>
+    <string name="requests_placeholder_title">Sin solicitudes</string>
+    <string name="requests_placeholder_message">Aquí gestionarás las solicitudes de acceso y de cambio de profesional. Este módulo estará disponible en la Beta.</string>
+
+    <!-- Perfil -->
+    <string name="profile_title">Perfil</string>
+    <string name="profile_about">Acerca de</string>
+    <string name="profile_version_label">Versión</string>
+    <string name="profile_version_value">%1$s (%2$d)</string>
+    <string name="profile_data_label">Datos</string>
+    <string name="profile_data_value">Locales y ficticios (de prueba)</string>
+    <string name="profile_sign_out">Cerrar sesión</string>
+    <string name="profile_sign_out_error">No se pudo cerrar la sesión. Inténtalo de nuevo.</string>
+
+    <!-- Estado del paciente -->
+    <string name="patient_status_active">Activo</string>
+    <string name="patient_status_inactive">Inactivo</string>
+    <string name="patient_status_archived">Archivado</string>
+    <string name="patient_status_blocked">Bloqueado</string>
+
+    <!-- Tipo de población -->
+    <string name="population_student">Alumno</string>
+    <string name="population_student_family">Familiar de alumno</string>
+    <string name="population_employee">Colaborador</string>
+    <string name="population_employee_family">Familiar de colaborador</string>
+    <string name="population_volunteer_youth">Voluntarios y Juventud</string>
+    <string name="population_training_alumni">Alumno o exalumno de capacitación</string>
+    <string name="population_corporate_agreement">Convenio empresarial</string>
+    <string name="population_general_public">Público general</string>
+    <string name="population_other">Otro</string>
+
+    <!-- Estado de la cita -->
+    <string name="appointment_status_pending">Pendiente</string>
+    <string name="appointment_status_scheduled">Programada</string>
+    <string name="appointment_status_confirmed">Confirmada</string>
+    <string name="appointment_status_rescheduled">Reprogramada</string>
+    <string name="appointment_status_completed">Realizada</string>
+    <string name="appointment_status_no_show">No asistió</string>
+    <string name="appointment_status_cancelled">Cancelada</string>
+
+    <!-- Modalidad de la cita -->
+    <string name="modality_in_person">Presencial</string>
+    <string name="modality_online">En línea</string>
+
+    <!-- Áreas clínicas -->
+    <string name="area_psychology">Psicología</string>
+    <string name="area_nutrition">Nutrición</string>
+    <string name="area_general_medicine">Medicina General</string>
+</resources>

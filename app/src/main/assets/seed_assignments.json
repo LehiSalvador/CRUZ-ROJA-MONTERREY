@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "fictitious": true,
+    "seedVersion": 1,
+    "description": "Historial ficticio de asignaciones profesional-paciente. Los días son relativos al día de la primera carga."
+  },
+  "assignments": [
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000001",
+      "patientId": "b0000000-0000-4000-8000-000000000001",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000003",
+      "startDayOffset": -60,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000002",
+      "patientId": "b0000000-0000-4000-8000-000000000002",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "startDayOffset": -45,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000003",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000003",
+      "startDayOffset": -90,
+      "endDayOffset": -30,
+      "status": "ENDED",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000004",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "startDayOffset": -30,
+      "status": "ACTIVE",
+      "reason": "Reasignación por carga de agenda",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000005",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "area": "NUTRITION",
+      "professionalId": "a0000000-0000-4000-8000-000000000005",
+      "startDayOffset": -40,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000006",
+      "patientId": "b0000000-0000-4000-8000-000000000004",
+      "area": "GENERAL_MEDICINE",
+      "professionalId": "a0000000-0000-4000-8000-000000000006",
+      "startDayOffset": -50,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000007",
+      "patientId": "b0000000-0000-4000-8000-000000000005",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "startDayOffset": -20,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000008",
+      "patientId": "b0000000-0000-4000-8000-000000000006",
+      "area": "NUTRITION",
+      "professionalId": "a0000000-0000-4000-8000-000000000005",
+      "startDayOffset": -35,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-000000000009",
+      "patientId": "b0000000-0000-4000-8000-000000000006",
+      "area": "GENERAL_MEDICINE",
+      "professionalId": "a0000000-0000-4000-8000-000000000006",
+      "startDayOffset": -35,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-00000000000a",
+      "patientId": "b0000000-0000-4000-8000-000000000007",
+      "area": "GENERAL_MEDICINE",
+      "professionalId": "a0000000-0000-4000-8000-000000000006",
+      "startDayOffset": -70,
+      "status": "ACTIVE",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-00000000000b",
+      "patientId": "b0000000-0000-4000-8000-000000000007",
+      "area": "NUTRITION",
+      "professionalId": "a0000000-0000-4000-8000-000000000005",
+      "startDayOffset": -14,
+      "status": "ACTIVE",
+      "reason": "Derivación desde Medicina General",
+      "assignedBy": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "assignmentId": "d0000000-0000-4000-8000-00000000000c",
+      "patientId": "b0000000-0000-4000-8000-000000000008",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000003",
+      "startDayOffset": -120,
+      "endDayOffset": -60,
+      "status": "ENDED",
+      "reason": "Asignación inicial",
+      "assignedBy": "a0000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

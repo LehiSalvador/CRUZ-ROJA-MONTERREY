@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "fictitious": true,
+    "seedVersion": 1,
+    "description": "Encuentros clínicos ficticios sin contenido clínico. Los días son relativos al día de la primera carga."
+  },
+  "encounters": [
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000001",
+      "patientId": "b0000000-0000-4000-8000-000000000001",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000003",
+      "appointmentId": "e0000000-0000-4000-8000-000000000001",
+      "type": "INITIAL",
+      "status": "COMPLETED",
+      "dayOffset": -21,
+      "time": "10:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000002",
+      "patientId": "b0000000-0000-4000-8000-000000000002",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "appointmentId": "e0000000-0000-4000-8000-000000000002",
+      "type": "FOLLOW_UP",
+      "status": "COMPLETED",
+      "dayOffset": -14,
+      "time": "11:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000003",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "area": "NUTRITION",
+      "professionalId": "a0000000-0000-4000-8000-000000000005",
+      "appointmentId": "e0000000-0000-4000-8000-000000000003",
+      "type": "INITIAL",
+      "status": "COMPLETED",
+      "dayOffset": -14,
+      "time": "16:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000005"
+    },
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000004",
+      "patientId": "b0000000-0000-4000-8000-000000000004",
+      "area": "GENERAL_MEDICINE",
+      "professionalId": "a0000000-0000-4000-8000-000000000006",
+      "appointmentId": "e0000000-0000-4000-8000-000000000004",
+      "type": "INITIAL",
+      "status": "COMPLETED",
+      "dayOffset": -10,
+      "time": "09:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000006"
+    },
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000005",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "area": "PSYCHOLOGY",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "type": "FOLLOW_UP",
+      "status": "COMPLETED",
+      "dayOffset": -8,
+      "time": "15:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "encounterId": "f0000000-0000-4000-8000-000000000006",
+      "patientId": "b0000000-0000-4000-8000-000000000007",
+      "area": "GENERAL_MEDICINE",
+      "professionalId": "a0000000-0000-4000-8000-000000000006",
+      "type": "OTHER",
+      "status": "COMPLETED",
+      "dayOffset": -25,
+      "time": "12:00",
+      "createdBy": "a0000000-0000-4000-8000-000000000006"
+    }
+  ]
+}

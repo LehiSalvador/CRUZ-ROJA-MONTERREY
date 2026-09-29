@@ -1,0 +1,35 @@
+# Gradle / Kotlin / Android build output
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Configuración local (rutas de SDK, etc.)
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Secretos y firma: nunca versionar
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+keystore.properties
+google-services.json
+*.pem
+*.p12
+
+# Binarios de distribución (se publican por otro canal, no en el historial de Git)
+*.apk
+*.aab
+*.ap_

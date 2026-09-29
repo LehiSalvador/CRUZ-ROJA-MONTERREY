@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "fictitious": true,
+    "seedVersion": 1,
+    "description": "Aplicaciones y resultados completamente ficticios con instrumentos marcadores. No corresponden a BAI, BDI-II ni a ningún reactivo, scoring o clasificación real."
+  },
+  "assessments": [
+    {
+      "assessmentId": "a1000000-0000-4000-8000-000000000001",
+      "patientId": "b0000000-0000-4000-8000-000000000001",
+      "encounterId": "f0000000-0000-4000-8000-000000000001",
+      "professionalId": "a0000000-0000-4000-8000-000000000003",
+      "instrumentCode": "DEV_PLACEHOLDER_A",
+      "instrumentVersion": "0",
+      "administrationMode": "PROFESSIONAL_CAPTURE",
+      "dayOffset": -21,
+      "time": "10:20",
+      "durationMinutes": 20,
+      "status": "COMPLETED",
+      "result": {
+        "resultId": "a2000000-0000-4000-8000-000000000001",
+        "rawScore": 18.0,
+        "classificationCode": "TBD",
+        "classificationLabel": "Sin clasificar (TBD)",
+        "scoringVersion": "placeholder-0"
+      }
+    },
+    {
+      "assessmentId": "a1000000-0000-4000-8000-000000000002",
+      "patientId": "b0000000-0000-4000-8000-000000000002",
+      "encounterId": "f0000000-0000-4000-8000-000000000002",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "instrumentCode": "DEV_PLACEHOLDER_A",
+      "instrumentVersion": "0",
+      "administrationMode": "SUPERVISED_PATIENT",
+      "dayOffset": -14,
+      "time": "11:20",
+      "durationMinutes": 20,
+      "status": "COMPLETED",
+      "result": {
+        "resultId": "a2000000-0000-4000-8000-000000000002",
+        "rawScore": 12.0,
+        "classificationCode": "TBD",
+        "classificationLabel": "Sin clasificar (TBD)",
+        "scoringVersion": "placeholder-0"
+      }
+    },
+    {
+      "assessmentId": "a1000000-0000-4000-8000-000000000003",
+      "patientId": "b0000000-0000-4000-8000-000000000003",
+      "encounterId": "f0000000-0000-4000-8000-000000000005",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "instrumentCode": "DEV_PLACEHOLDER_B",
+      "instrumentVersion": "0",
+      "administrationMode": "PROFESSIONAL_CAPTURE",
+      "dayOffset": -8,
+      "time": "15:10",
+      "durationMinutes": 25,
+      "status": "COMPLETED",
+      "result": {
+        "resultId": "a2000000-0000-4000-8000-000000000003",
+        "rawScore": 31.0,
+        "classificationCode": "TBD",
+        "classificationLabel": "Sin clasificar (TBD)",
+        "scoringVersion": "placeholder-0"
+      }
+    },
+    {
+      "assessmentId": "a1000000-0000-4000-8000-000000000004",
+      "patientId": "b0000000-0000-4000-8000-000000000002",
+      "encounterId": "f0000000-0000-4000-8000-000000000002",
+      "professionalId": "a0000000-0000-4000-8000-000000000004",
+      "instrumentCode": "DEV_PLACEHOLDER_B",
+      "instrumentVersion": "0",
+      "administrationMode": "SUPERVISED_PATIENT",
+      "dayOffset": -14,
+      "time": "11:45",
+      "durationMinutes": 5,
+      "status": "CANCELLED"
+    }
+  ]
+}
