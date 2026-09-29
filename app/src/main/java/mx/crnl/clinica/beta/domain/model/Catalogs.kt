@@ -42,3 +42,6 @@ enum class EncounterStatus { DRAFT, COMPLETED }
 enum class AssessmentStatus { STARTED, COMPLETED, CANCELLED, INVALIDATED }
 
 enum class AdministrationMode { PROFESSIONAL_CAPTURE, SUPERVISED_PATIENT }
+
+/** Acciones que la aplicación registra en la bitácora de auditoría; se persisten por nombre. */
+enum class AuditAction { LOGIN, LOGOUT, USER_REQUESTED, PATIENT_CREATED, PATIENT_VIEWED, PATIENT_UPDATED }

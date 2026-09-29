@@ -3,6 +3,7 @@ package mx.crnl.clinica.beta.app
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStoreFile
 import java.time.Clock
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,11 +13,17 @@ import mx.crnl.clinica.beta.core.demo.AssetSeedFileReader
 import mx.crnl.clinica.beta.core.demo.DemoDataInitializer
 import mx.crnl.clinica.beta.core.demo.DemoSeedLoader
 import mx.crnl.clinica.beta.core.demo.LocalDataInitializer
+import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.core.util.ClinicTime
+import mx.crnl.clinica.beta.data.repository.AuditRecorder
 import mx.crnl.clinica.beta.data.repository.DataStoreSessionRepository
 import mx.crnl.clinica.beta.data.repository.LocalAppointmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAuthRepository
+import mx.crnl.clinica.beta.data.repository.LocalHomeRepository
 import mx.crnl.clinica.beta.data.repository.LocalPatientRepository
 import mx.crnl.clinica.beta.domain.repository.AppointmentRepository
+import mx.crnl.clinica.beta.domain.repository.AuthRepository
+import mx.crnl.clinica.beta.domain.repository.HomeRepository
 import mx.crnl.clinica.beta.domain.repository.PatientRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 
@@ -24,16 +31,21 @@ import mx.crnl.clinica.beta.domain.repository.SessionRepository
 interface AppContainer {
     val clock: Clock
     val sessionRepository: SessionRepository
+    val authRepository: AuthRepository
     val patientRepository: PatientRepository
     val appointmentRepository: AppointmentRepository
+    val homeRepository: HomeRepository
     val localDataInitializer: LocalDataInitializer
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
     private val appContext = context.applicationContext
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val newId: () -> String = { UUID.randomUUID().toString() }
 
     private val database: ClinicalDatabase by lazy { ClinicalDatabase.create(appContext) }
+
+    private val auditRecorder: AuditRecorder by lazy { AuditRecorder(database.auditDao(), clock, newId) }
 
     override val clock: Clock = ClinicTime.systemClock()
 
@@ -43,11 +55,19 @@ class DefaultAppContainer(context: Context) : AppContainer {
         )
     }
 
-    override val patientRepository: PatientRepository by lazy { LocalPatientRepository(database.patientDao()) }
+    override val authRepository: AuthRepository by lazy {
+        LocalAuthRepository(database, sessionRepository, PasswordHasher(), auditRecorder, clock, newId)
+    }
+
+    override val patientRepository: PatientRepository by lazy {
+        LocalPatientRepository(database, auditRecorder, clock, newId)
+    }
 
     override val appointmentRepository: AppointmentRepository by lazy {
         LocalAppointmentRepository(database.appointmentDao())
     }
+
+    override val homeRepository: HomeRepository by lazy { LocalHomeRepository(database, clock) }
 
     override val localDataInitializer: LocalDataInitializer by lazy {
         DemoDataInitializer(

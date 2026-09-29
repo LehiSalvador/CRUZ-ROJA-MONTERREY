@@ -4,6 +4,11 @@
 
     <!-- Acciones y estados genéricos -->
     <string name="action_retry">Reintentar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_back">Atrás</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_show">Mostrar</string>
+    <string name="action_hide">Ocultar</string>
     <string name="state_loading">Cargando…</string>
     <string name="state_error_title">No se pudo cargar la información</string>
     <string name="state_error_message">Ocurrió un problema al leer los datos. Inténtalo de nuevo.</string>
@@ -15,9 +20,63 @@
 
     <!-- Acceso -->
     <string name="login_title">Acceso del personal</string>
-    <string name="login_description">Ingresa para consultar pacientes y citas.</string>
-    <string name="login_continue">Continuar</string>
-    <string name="login_error">No se pudo iniciar la sesión. Inténtalo de nuevo.</string>
+    <string name="login_description">Ingresa con tu cuenta para consultar pacientes y citas.</string>
+    <string name="login_email_label">Correo electrónico</string>
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_submit">Iniciar sesión</string>
+    <string name="login_no_account">¿Aún no tienes cuenta?</string>
+    <string name="login_request_account">Solicitar cuenta</string>
+    <string name="login_error_missing">Escribe tu correo y tu contraseña.</string>
+    <string name="login_error_invalid">Correo o contraseña incorrectos.</string>
+    <string name="login_error_pending">Tu solicitud de cuenta está pendiente de aprobación.</string>
+    <string name="login_error_suspended">Tu cuenta está suspendida. Comunícate con un administrador.</string>
+    <string name="login_error_rejected">Tu solicitud de cuenta fue rechazada.</string>
+    <string name="login_error_inactive">Tu cuenta está inactiva. Comunícate con un administrador.</string>
+    <string name="login_error_unavailable">No se pudo iniciar la sesión. Inténtalo de nuevo.</string>
+
+    <!-- Solicitud de cuenta -->
+    <string name="request_title">Solicitar cuenta</string>
+    <string name="request_intro">Registra tus datos. Un administrador revisará la solicitud y no podrás iniciar sesión hasta que sea aprobada.</string>
+    <string name="request_first_name">Nombre(s)</string>
+    <string name="request_paternal_surname">Apellido paterno</string>
+    <string name="request_maternal_surname">Apellido materno (opcional)</string>
+    <string name="request_email">Correo electrónico</string>
+    <string name="request_password">Contraseña</string>
+    <plurals name="request_password_hint">
+        <item quantity="one">Mínimo %d carácter</item>
+        <item quantity="other">Mínimo %d caracteres</item>
+    </plurals>
+    <string name="request_password_confirmation">Confirmar contraseña</string>
+    <string name="request_area">Área</string>
+    <string name="request_role">Rol solicitado</string>
+    <string name="request_license">Cédula profesional</string>
+    <string name="request_license_optional">Cédula profesional (opcional)</string>
+    <string name="request_license_hint">7 u 8 dígitos</string>
+    <string name="request_submit">Enviar solicitud</string>
+    <string name="request_error">No se pudo enviar la solicitud. Inténtalo de nuevo.</string>
+    <string name="request_success_title">Solicitud enviada</string>
+    <string name="request_success_message">Tu cuenta quedó pendiente de aprobación. Podrás iniciar sesión cuando un administrador la apruebe.</string>
+    <string name="request_back_to_login">Volver al acceso</string>
+    <string name="request_issue_required">Este campo es obligatorio</string>
+    <string name="request_issue_invalid">Revisa este dato</string>
+    <string name="request_issue_too_long">El texto es demasiado largo</string>
+    <plurals name="request_issue_too_short">
+        <item quantity="one">Usa al menos %d carácter</item>
+        <item quantity="other">Usa al menos %d caracteres</item>
+    </plurals>
+    <string name="request_issue_mismatch">Las contraseñas no coinciden</string>
+    <string name="request_issue_email_taken">Ya existe una cuenta o solicitud con este correo</string>
+
+    <!-- Roles y estados de cuenta -->
+    <string name="role_professional">Profesional</string>
+    <string name="role_area_coordinator">Coordinador de área</string>
+    <string name="role_clinical_admin">Administrador clínico</string>
+    <string name="role_system_admin">Administrador del sistema</string>
+    <string name="account_status_active">Activa</string>
+    <string name="account_status_pending_approval">Pendiente de aprobación</string>
+    <string name="account_status_suspended">Suspendida</string>
+    <string name="account_status_rejected">Rechazada</string>
+    <string name="account_status_inactive">Inactiva</string>
 
     <!-- Navegación principal -->
     <string name="nav_home">Inicio</string>
@@ -27,13 +86,34 @@
     <string name="nav_profile">Perfil</string>
 
     <!-- Inicio -->
-    <string name="home_placeholder_title">Panel de inicio</string>
-    <string name="home_placeholder_message">Aquí verás tus accesos rápidos, próximas citas y pendientes. Este módulo estará disponible en la Beta.</string>
+    <string name="home_greeting">Hola, %1$s</string>
+    <string name="home_action_new_patient">Nuevo paciente</string>
+    <string name="home_action_search">Buscar paciente</string>
+    <string name="home_metric_assigned">Mis pacientes</string>
+    <string name="home_metric_area">Pacientes del área</string>
+    <string name="home_metric_all">Pacientes activos</string>
+    <string name="home_metric_appointments">Próximas citas</string>
+    <string name="home_metric_requests">Solicitudes pendientes</string>
+    <string name="home_recent_patients">Pacientes recientes</string>
+    <string name="home_recent_empty">Aún no hay pacientes registrados.</string>
+    <string name="home_upcoming_appointments">Próximas citas</string>
+    <string name="home_upcoming_empty">No hay citas próximas.</string>
 
     <!-- Pacientes -->
     <string name="patients_title">Pacientes</string>
+    <string name="patients_search_label">Buscar paciente</string>
+    <string name="patients_search_placeholder">Nombre, folio, teléfono, correo o fecha</string>
+    <string name="patients_search_clear">Borrar búsqueda</string>
+    <string name="patients_filter_all">Todos</string>
+    <string name="patients_filter_mine">Mis pacientes</string>
+    <string name="patients_new">Nuevo paciente</string>
     <string name="patients_empty_title">Sin pacientes registrados</string>
     <string name="patients_empty_message">Cuando existan pacientes registrados aparecerán aquí.</string>
+    <string name="patients_no_results_title">Sin resultados</string>
+    <string name="patients_no_results_message">No hay pacientes que coincidan con «%1$s».</string>
+    <string name="patients_no_mine_title">Sin pacientes asignados</string>
+    <string name="patients_no_mine_message">Los pacientes que tengas asignados aparecerán aquí.</string>
+    <string name="patients_no_assignment">Sin asignación</string>
     <plurals name="patient_age_years">
         <item quantity="one">%d año</item>
         <item quantity="other">%d años</item>
@@ -49,10 +129,15 @@
     <!-- Solicitudes -->
     <string name="requests_title">Solicitudes</string>
     <string name="requests_placeholder_title">Sin solicitudes</string>
-    <string name="requests_placeholder_message">Aquí gestionarás las solicitudes de acceso y de cambio de profesional. Este módulo estará disponible en la Beta.</string>
+    <string name="requests_placeholder_message">Las solicitudes de acceso y de cambio de profesional aparecerán aquí.</string>
 
     <!-- Perfil -->
     <string name="profile_title">Perfil</string>
+    <string name="profile_email">Correo</string>
+    <string name="profile_area">Área</string>
+    <string name="profile_area_none">Sin área específica</string>
+    <string name="profile_role">Rol</string>
+    <string name="profile_license">Cédula profesional</string>
     <string name="profile_about">Acerca de</string>
     <string name="profile_version_label">Versión</string>
     <string name="profile_version_value">%1$s (%2$d)</string>
@@ -66,6 +151,11 @@
     <string name="patient_status_inactive">Inactivo</string>
     <string name="patient_status_archived">Archivado</string>
     <string name="patient_status_blocked">Bloqueado</string>
+
+    <!-- Sexo -->
+    <string name="sex_female">Femenino</string>
+    <string name="sex_male">Masculino</string>
+    <string name="sex_other">Otro</string>
 
     <!-- Tipo de población -->
     <string name="population_student">Alumno</string>
@@ -95,4 +185,122 @@
     <string name="area_psychology">Psicología</string>
     <string name="area_nutrition">Nutrición</string>
     <string name="area_general_medicine">Medicina General</string>
+
+    <!-- Expediente -->
+    <string name="detail_title">Expediente</string>
+    <string name="detail_edit">Editar</string>
+    <string name="detail_not_found_title">Paciente no encontrado</string>
+    <string name="detail_not_found_message">El expediente ya no está disponible.</string>
+    <string name="detail_tab_summary">Resumen</string>
+    <string name="detail_tab_appointments">Citas</string>
+    <string name="detail_tab_documents">Documentos</string>
+    <string name="detail_section_general">Datos generales</string>
+    <string name="detail_section_contact">Contacto</string>
+    <string name="detail_section_assignments">Profesionales asignados</string>
+    <string name="detail_section_next_appointment">Próxima cita</string>
+    <string name="detail_section_encounters">Consultas</string>
+    <string name="detail_section_assessments">Evaluaciones</string>
+    <string name="detail_birth_date">Fecha de nacimiento</string>
+    <string name="detail_birth_place">Lugar de nacimiento</string>
+    <string name="detail_municipality">Municipio</string>
+    <string name="detail_population">Población</string>
+    <string name="detail_phone">Teléfono</string>
+    <string name="detail_email">Correo</string>
+    <string name="detail_no_data">Sin registrar</string>
+    <string name="detail_no_contacts">Sin datos de contacto.</string>
+    <string name="detail_no_assignments">Sin profesional asignado.</string>
+    <string name="detail_no_next_appointment">Sin citas próximas.</string>
+    <string name="detail_no_encounters">Sin consultas registradas.</string>
+    <string name="detail_no_assessments">Sin evaluaciones registradas.</string>
+    <string name="detail_area_empty_title">Sin registros de %1$s</string>
+    <string name="detail_area_empty_message">Cuando existan asignaciones, consultas o evaluaciones de esta área aparecerán aquí.</string>
+    <string name="detail_appointments_empty_title">Sin citas</string>
+    <string name="detail_appointments_empty_message">Este paciente no tiene citas registradas.</string>
+    <string name="detail_documents_empty_title">Sin documentos</string>
+    <string name="detail_documents_empty_message">Este expediente no tiene documentos.</string>
+    <string name="detail_assigned_since">Desde %1$s</string>
+    <string name="encounter_type_initial">Consulta inicial</string>
+    <string name="encounter_type_follow_up">Seguimiento</string>
+    <string name="encounter_type_intervention">Intervención</string>
+    <string name="encounter_type_assessment">Evaluación</string>
+    <string name="encounter_type_closure">Cierre</string>
+    <string name="encounter_type_other">Otra consulta</string>
+    <string name="encounter_status_draft">Borrador</string>
+    <string name="encounter_status_completed">Completada</string>
+    <string name="assessment_title">Evaluación</string>
+    <string name="assessment_status_started">En curso</string>
+    <string name="assessment_status_completed">Completada</string>
+    <string name="assessment_status_cancelled">Cancelada</string>
+    <string name="assessment_status_invalidated">Invalidada</string>
+    <string name="assessment_result_recorded">Resultado registrado</string>
+    <string name="assessment_unclassified">Sin&#160;clasificar</string>
+
+    <!-- Alta y edición de pacientes -->
+    <string name="new_patient_title">Nuevo paciente</string>
+    <string name="edit_patient_title">Editar paciente</string>
+    <string name="wizard_step_progress">Paso %1$d de %2$d</string>
+    <string name="step_identity">Identificación</string>
+    <string name="step_contact">Contacto</string>
+    <string name="step_population">Población</string>
+    <string name="step_consent">Consentimientos</string>
+    <string name="step_duplicates">Revisión de coincidencias</string>
+    <string name="step_confirmation">Confirmación</string>
+    <string name="field_first_name">Nombre(s)</string>
+    <string name="field_paternal_surname">Apellido paterno</string>
+    <string name="field_maternal_surname">Apellido materno (opcional)</string>
+    <string name="field_birth_date">Fecha de nacimiento</string>
+    <string name="field_birth_date_hint">dd/mm/aaaa</string>
+    <string name="field_birth_place">Lugar de nacimiento (opcional)</string>
+    <string name="field_sex">Sexo</string>
+    <string name="field_municipality">Municipio (opcional)</string>
+    <string name="field_population">Población</string>
+    <string name="field_phone">Teléfono (opcional)</string>
+    <string name="field_email">Correo electrónico (opcional)</string>
+    <string name="issue_required">Este campo es obligatorio</string>
+    <string name="issue_select">Selecciona una opción</string>
+    <string name="issue_invalid">Revisa este dato</string>
+    <string name="issue_too_long">El texto es demasiado largo</string>
+    <string name="issue_invalid_date">Escribe una fecha válida (dd/mm/aaaa)</string>
+    <string name="issue_future_date">La fecha no puede ser futura</string>
+    <string name="issue_too_old">La fecha no es válida</string>
+    <string name="issue_invalid_phone">Escribe un teléfono de 10 dígitos</string>
+    <string name="issue_invalid_email">Escribe un correo válido</string>
+    <string name="issue_invalid_name">Usa solo letras, espacios y guiones</string>
+    <string name="consent_message">Los formatos de consentimiento institucionales todavía no están configurados, por lo que no se registra ninguna aceptación. Puedes continuar con el registro.</string>
+    <string name="duplicates_checking">Buscando coincidencias…</string>
+    <string name="duplicates_none_title">Sin coincidencias</string>
+    <string name="duplicates_none_message">No hay pacientes registrados con datos que coincidan con los capturados.</string>
+    <plurals name="duplicates_found_title">
+        <item quantity="one">Posible paciente existente</item>
+        <item quantity="other">%d posibles pacientes existentes</item>
+    </plurals>
+    <string name="duplicates_found_message">Hay pacientes registrados con datos que coinciden. Revisa si se trata de la misma persona antes de registrar uno nuevo.</string>
+    <string name="duplicates_open">Ver expediente</string>
+    <string name="duplicates_back_to_edit">Volver a editar</string>
+    <string name="duplicates_create_anyway">Crear de todos modos</string>
+    <string name="duplicates_confirm_action">Registrar como nuevo</string>
+    <string name="duplicates_confirm_title">¿Registrar como paciente nuevo?</string>
+    <string name="duplicates_confirm_message">Ya existen registros con datos coincidentes. Confirma solo si se trata de una persona distinta.</string>
+    <string name="duplicates_failed">No se pudo revisar si el paciente ya existe. Inténtalo de nuevo.</string>
+    <string name="duplicate_reason_email">Mismo correo</string>
+    <string name="duplicate_reason_phone">Mismo teléfono</string>
+    <string name="duplicate_reason_name">Nombre y fecha de nacimiento coinciden</string>
+    <string name="duplicate_reason_similar_name">Nombre similar y fecha de nacimiento coinciden</string>
+    <string name="confirm_full_name">Nombre completo</string>
+    <string name="confirm_save">Guardar paciente</string>
+    <string name="confirm_save_error">No se pudo guardar el paciente. Inténtalo de nuevo.</string>
+    <string name="confirm_no_data">Sin registrar</string>
+    <string name="patient_created_message">Paciente registrado con folio %1$s</string>
+    <string name="edit_save">Guardar cambios</string>
+    <string name="edit_save_error">No se pudieron guardar los cambios. Inténtalo de nuevo.</string>
+    <string name="edit_saved_message">Cambios guardados</string>
+    <string name="edit_duplicates_title">Posible paciente existente</string>
+    <string name="edit_duplicates_message">Los datos capturados coinciden con otro expediente. Revisa antes de guardar.</string>
+    <string name="edit_duplicates_save_anyway">Guardar de todos modos</string>
+    <string name="discard_title">¿Descartar el registro?</string>
+    <string name="discard_message">Los datos capturados se perderán.</string>
+    <string name="discard_confirm">Descartar</string>
+    <string name="discard_keep">Seguir editando</string>
+    <string name="edit_discard_title">¿Descartar los cambios?</string>
+    <string name="edit_discard_message">Los cambios que no guardaste se perderán.</string>
 </resources>

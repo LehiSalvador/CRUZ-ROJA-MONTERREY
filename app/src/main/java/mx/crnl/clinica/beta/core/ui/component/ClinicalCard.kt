@@ -12,16 +12,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
 
+/** Tarjeta de contenido; con [onClick] es una superficie táctil que abre otro destino. */
 @Composable
 fun ClinicalCard(
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    OutlinedCard(
-        modifier = modifier,
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md), content = content)
+    val colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
+    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    if (onClick == null) {
+        OutlinedCard(modifier = modifier, colors = colors, border = border) {
+            Column(modifier = Modifier.padding(Spacing.md), content = content)
+        }
+    } else {
+        OutlinedCard(onClick = onClick, modifier = modifier, colors = colors, border = border) {
+            Column(modifier = Modifier.padding(Spacing.md), content = content)
+        }
     }
 }

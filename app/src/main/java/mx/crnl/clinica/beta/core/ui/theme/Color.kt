@@ -51,7 +51,8 @@ internal val DarkColors = darkColorScheme(
     onTertiary = Color(0xFF00382E),
     tertiaryContainer = Color(0xFF005142),
     onTertiaryContainer = Color(0xFFA4F2DD),
-    error = Color(0xFFFFB4AB),
+    // Un rojo más saturado que el primario rosado: así el error se distingue del foco y de los enlaces (5,8:1 sobre el fondo).
+    error = Color(0xFFFF5449),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD6),

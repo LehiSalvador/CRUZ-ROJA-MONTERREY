@@ -12,6 +12,7 @@ import mx.crnl.clinica.beta.data.local.entity.AssessmentEntity
 import mx.crnl.clinica.beta.data.local.entity.AssessmentResultEntity
 import mx.crnl.clinica.beta.data.local.entity.AuditEntryEntity
 import mx.crnl.clinica.beta.data.local.entity.ClinicalEncounterEntity
+import mx.crnl.clinica.beta.data.local.entity.DemoCredentialEntity
 import mx.crnl.clinica.beta.data.local.entity.DemoUserEntity
 import mx.crnl.clinica.beta.data.local.entity.PatientContactEntity
 import mx.crnl.clinica.beta.data.local.entity.PatientEntity
@@ -36,6 +37,18 @@ class DemoSeedMapper(private val clock: Clock) {
                 roleCode = user.role,
                 areaCode = user.area,
                 status = user.status,
+                createdAt = nowMillis,
+                updatedAt = nowMillis,
+                professionalLicense = user.professionalLicense,
+            )
+        },
+        credentials = seed.credentials.map { credential ->
+            DemoCredentialEntity(
+                userId = credential.userId,
+                algorithm = credential.algorithm,
+                iterations = credential.iterations,
+                salt = credential.salt,
+                passwordHash = credential.hash,
                 createdAt = nowMillis,
                 updatedAt = nowMillis,
             )

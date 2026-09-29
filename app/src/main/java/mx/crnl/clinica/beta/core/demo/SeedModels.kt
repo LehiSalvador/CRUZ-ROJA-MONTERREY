@@ -24,7 +24,21 @@ data class SeedUser(
     val email: String,
     val role: String,
     val area: String? = null,
+    val professionalLicense: String? = null,
     val status: String,
+)
+
+@Serializable
+data class SeedCredentialsFile(val meta: SeedMeta, val credentials: List<SeedCredential>)
+
+/** Solo sal y derivación de la contraseña; el texto de la contraseña no forma parte del conjunto de datos. */
+@Serializable
+data class SeedCredential(
+    val userId: String,
+    val algorithm: String,
+    val iterations: Int,
+    val salt: String,
+    val hash: String,
 )
 
 @Serializable

@@ -1,7 +1,7 @@
 {
   "meta": {
     "fictitious": true,
-    "seedVersion": 1,
+    "seedVersion": 2,
     "description": "Agenda ficticia. Los días son relativos al día de la primera carga; los enlaces usan dominios reservados para ejemplos."
   },
   "appointments": [

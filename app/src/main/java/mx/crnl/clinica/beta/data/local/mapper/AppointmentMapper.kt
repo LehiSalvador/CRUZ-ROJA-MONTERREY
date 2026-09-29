@@ -10,9 +10,10 @@ import mx.crnl.clinica.beta.domain.model.ClinicalArea
 fun AppointmentListRow.toDomain(): AppointmentSummary = AppointmentSummary(
     appointmentId = appointmentId,
     patientId = patientId,
-    patientName = fullName(patientFirstName, patientPaternalSurname, patientMaternalSurname),
+    patientName = personName(patientFirstName, patientPaternalSurname, patientMaternalSurname),
     patientNumber = patientNumber,
-    professionalName = fullName(professionalFirstName, professionalPaternalSurname, null),
+    professionalId = professionalId,
+    professionalName = personName(professionalFirstName, professionalPaternalSurname, null),
     area = ClinicalArea.valueOf(areaCode),
     start = Instant.ofEpochMilli(startDateTime),
     end = Instant.ofEpochMilli(endDateTime),
@@ -21,5 +22,5 @@ fun AppointmentListRow.toDomain(): AppointmentSummary = AppointmentSummary(
     status = AppointmentStatus.valueOf(status),
 )
 
-private fun fullName(firstName: String, paternalSurname: String, maternalSurname: String?): String =
+internal fun personName(firstName: String, paternalSurname: String, maternalSurname: String?): String =
     listOfNotNull(firstName, paternalSurname, maternalSurname).joinToString(" ")

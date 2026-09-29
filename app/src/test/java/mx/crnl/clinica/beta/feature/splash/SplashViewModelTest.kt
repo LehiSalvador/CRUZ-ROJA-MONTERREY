@@ -1,6 +1,7 @@
 package mx.crnl.clinica.beta.feature.splash
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -8,9 +9,12 @@ import kotlinx.coroutines.test.runTest
 import mx.crnl.clinica.beta.core.demo.LocalDataInitializer
 import mx.crnl.clinica.beta.core.demo.SeedException
 import mx.crnl.clinica.beta.core.demo.SeedOutcome
-import mx.crnl.clinica.beta.testing.FakeSessionRepository
+import mx.crnl.clinica.beta.domain.model.AccountStatus
+import mx.crnl.clinica.beta.testing.FakeAuthRepository
 import mx.crnl.clinica.beta.testing.MainDispatcherRule
+import mx.crnl.clinica.beta.testing.userAccount
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -23,13 +27,13 @@ class SplashViewModelTest {
     private var initializations = 0
 
     private fun viewModel(
-        session: FakeSessionRepository = FakeSessionRepository(),
+        auth: FakeAuthRepository = FakeAuthRepository(),
         initializer: LocalDataInitializer = LocalDataInitializer {
             initializations++
             SeedOutcome.AlreadyApplied
         },
         minimumMillis: Long = 500,
-    ) = SplashViewModel(initializer, session, minimumMillis)
+    ) = SplashViewModel(initializer, auth, minimumMillis)
 
     @Test
     fun `sin sesion activa termina en el acceso`() = runTest(mainDispatcher.dispatcher) {
@@ -42,11 +46,44 @@ class SplashViewModelTest {
 
     @Test
     fun `con sesion activa termina en la shell principal`() = runTest(mainDispatcher.dispatcher) {
-        val viewModel = viewModel(session = FakeSessionRepository(active = true))
+        val user = userAccount(id = "mariana")
+        val viewModel = viewModel(auth = FakeAuthRepository(listOf(user to "clave"), initialUserId = "mariana"))
 
         advanceUntilIdle()
 
         assertEquals(SplashUiState.Ready(SplashDestination.MAIN), viewModel.state.value)
+    }
+
+    @Test
+    fun `una sesion guardada de una cuenta que ya no esta activa se descarta y va al acceso`() = runTest(mainDispatcher.dispatcher) {
+        val suspended = userAccount(id = "suspendida", status = AccountStatus.SUSPENDED)
+        val auth = FakeAuthRepository(listOf(suspended to "clave"), initialUserId = "suspendida")
+        val viewModel = viewModel(auth = auth)
+
+        advanceUntilIdle()
+
+        assertEquals(SplashUiState.Ready(SplashDestination.LOGIN), viewModel.state.value)
+        assertNull(auth.currentUser.first())
+    }
+
+    @Test
+    fun `una sesion guardada de un usuario inexistente se descarta y va al acceso`() = runTest(mainDispatcher.dispatcher) {
+        val auth = FakeAuthRepository(emptyList(), initialUserId = "fantasma")
+        val viewModel = viewModel(auth = auth)
+
+        advanceUntilIdle()
+
+        assertEquals(SplashUiState.Ready(SplashDestination.LOGIN), viewModel.state.value)
+    }
+
+    @Test
+    fun `la sesion se resuelve una sola vez sin ciclos`() = runTest(mainDispatcher.dispatcher) {
+        val auth = FakeAuthRepository()
+        viewModel(auth = auth)
+
+        advanceUntilIdle()
+
+        assertEquals(1, auth.restoreCalls)
     }
 
     @Test

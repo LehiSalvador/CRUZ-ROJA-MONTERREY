@@ -2,11 +2,8 @@ package mx.crnl.clinica.beta.feature.appointments
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,32 +11,22 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import mx.crnl.clinica.beta.R
-import mx.crnl.clinica.beta.core.ui.component.ClinicalCard
 import mx.crnl.clinica.beta.core.ui.component.ClinicalTopBar
 import mx.crnl.clinica.beta.core.ui.component.EmptyState
 import mx.crnl.clinica.beta.core.ui.component.SectionHeader
-import mx.crnl.clinica.beta.core.ui.component.StatusChip
 import mx.crnl.clinica.beta.core.ui.component.UiStateContent
-import mx.crnl.clinica.beta.core.ui.label.labelRes
-import mx.crnl.clinica.beta.core.ui.label.tone
 import mx.crnl.clinica.beta.core.ui.state.UiState
 import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
-import mx.crnl.clinica.beta.core.util.DateTimeFormats
-import mx.crnl.clinica.beta.domain.model.AppointmentModality
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 
 @Composable
@@ -82,42 +69,5 @@ private fun LazyListScope.appointmentSection(
 ) {
     if (appointments.isEmpty()) return
     item(key = "header-$titleRes") { SectionHeader(title = stringResource(titleRes)) }
-    items(appointments, key = { it.appointmentId }) { appointment -> AppointmentRow(appointment) }
-}
-
-@Composable
-private fun AppointmentRow(item: AppointmentSummary) {
-    ClinicalCard(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Row(
-                modifier = Modifier.padding(bottom = Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                Text(
-                    text = "${DateTimeFormats.day(item.start)} · ${DateTimeFormats.timeRange(item.start, item.end)}",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                StatusChip(label = stringResource(item.status.labelRes()), tone = item.status.tone())
-            }
-            Text(text = item.patientName, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = "${stringResource(item.area.labelRes())} · ${item.professionalName}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val modality = stringResource(item.modality.labelRes())
-            Text(
-                text = if (item.modality == AppointmentModality.IN_PERSON && item.location != null) {
-                    "$modality · ${item.location}"
-                } else {
-                    modality
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    items(appointments, key = { it.appointmentId }) { appointment -> AppointmentCard(appointment) }
 }

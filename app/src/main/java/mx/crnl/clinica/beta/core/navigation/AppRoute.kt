@@ -26,13 +26,29 @@ sealed interface AppRoute {
     data object Login : AppRoute
 
     @Serializable
+    data object RequestAccount : AppRoute
+
+    @Serializable
     data object Main : AppRoute
 
     @Serializable
     data object Home : AppRoute
 
+    /** Grafo de la pestaña Pacientes: agrupa el listado, el expediente y los formularios de alta y edición. */
+    @Serializable
+    data object PatientsGraph : AppRoute
+
     @Serializable
     data object Patients : AppRoute
+
+    @Serializable
+    data class PatientDetail(val patientId: String) : AppRoute
+
+    @Serializable
+    data object NewPatient : AppRoute
+
+    @Serializable
+    data class EditPatient(val patientId: String) : AppRoute
 
     @Serializable
     data object Appointments : AppRoute
@@ -52,7 +68,7 @@ enum class TopLevelDestination(
     val selectedIcon: ImageVector,
 ) {
     HOME(AppRoute.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
-    PATIENTS(AppRoute.Patients, R.string.nav_patients, Icons.Outlined.Person, Icons.Filled.Person),
+    PATIENTS(AppRoute.PatientsGraph, R.string.nav_patients, Icons.Outlined.Person, Icons.Filled.Person),
     APPOINTMENTS(AppRoute.Appointments, R.string.nav_appointments, Icons.Outlined.DateRange, Icons.Filled.DateRange),
     REQUESTS(AppRoute.Requests, R.string.nav_requests, Icons.Outlined.Email, Icons.Filled.Email),
     PROFILE(AppRoute.Profile, R.string.nav_profile, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),

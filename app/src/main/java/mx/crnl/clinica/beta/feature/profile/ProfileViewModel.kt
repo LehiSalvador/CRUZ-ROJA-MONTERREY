@@ -2,34 +2,40 @@ package mx.crnl.clinica.beta.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.io.IOException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import mx.crnl.clinica.beta.domain.repository.SessionRepository
+import mx.crnl.clinica.beta.core.util.runCatchingCancellable
+import mx.crnl.clinica.beta.domain.model.UserAccount
+import mx.crnl.clinica.beta.domain.repository.AuthRepository
 
 data class ProfileUiState(
+    val user: UserAccount? = null,
     val isSigningOut: Boolean = false,
-    val isSignedOut: Boolean = false,
     val hasError: Boolean = false,
 )
 
-class ProfileViewModel(private val sessionRepository: SessionRepository) : ViewModel() {
-    private val _state = MutableStateFlow(ProfileUiState())
-    val state: StateFlow<ProfileUiState> = _state.asStateFlow()
+class ProfileViewModel(private val authRepository: AuthRepository) : ViewModel() {
+    private val signOutState = MutableStateFlow(ProfileUiState())
+
+    val state: StateFlow<ProfileUiState> = combine(authRepository.currentUser, signOutState) { user, signOut ->
+        signOut.copy(user = user)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ProfileUiState())
 
     fun onSignOut() {
-        val current = _state.value
-        if (current.isSigningOut || current.isSignedOut) return
-        _state.value = ProfileUiState(isSigningOut = true)
+        if (signOutState.value.isSigningOut) return
+        signOutState.value = ProfileUiState(isSigningOut = true)
         viewModelScope.launch {
-            _state.value = try {
-                sessionRepository.endSession()
-                ProfileUiState(isSignedOut = true)
-            } catch (error: IOException) {
-                ProfileUiState(hasError = true)
-            }
+            val result = runCatchingCancellable { authRepository.signOut() }
+            signOutState.update { it.copy(isSigningOut = false, hasError = result.isFailure) }
         }
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

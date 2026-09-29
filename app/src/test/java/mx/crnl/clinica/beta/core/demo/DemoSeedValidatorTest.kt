@@ -40,7 +40,7 @@ class DemoSeedValidatorTest {
 
     @Test
     fun `rechaza una version de datos que la compilacion no soporta`() {
-        val meta = baseline.metas.getValue(DemoSeed.PATIENTS_FILE).copy(seedVersion = 2)
+        val meta = baseline.metas.getValue(DemoSeed.PATIENTS_FILE).copy(seedVersion = 3)
         assertIssue(baseline.copy(metas = baseline.metas + (DemoSeed.PATIENTS_FILE to meta)), "meta.seedVersion")
     }
 
@@ -165,6 +165,58 @@ class DemoSeedValidatorTest {
             assessments = baseline.assessments.map { if (it.assessmentId == completed.assessmentId) it.copy(result = null) else it },
         )
         assertIssue(seed, "COMPLETED requiere resultado")
+    }
+
+    @Test
+    fun `rechaza una credencial de un usuario inexistente`() {
+        val seed = baseline.copy(credentials = baseline.credentials + baseline.credentials.first().copy(userId = unknownId))
+        assertIssue(seed, "usuario '$unknownId' inexistente")
+    }
+
+    @Test
+    fun `rechaza usuarios sin credencial`() {
+        val orphan = baseline.users.first().userId
+        val seed = baseline.copy(credentials = baseline.credentials.filterNot { it.userId == orphan })
+        assertIssue(seed, "el usuario '$orphan' no tiene credencial")
+    }
+
+    @Test
+    fun `rechaza dos credenciales para el mismo usuario`() {
+        val seed = baseline.copy(credentials = baseline.credentials + baseline.credentials.first().copy(salt = "AAAAAAAAAAAAAAAAAAAAAA=="))
+        assertIssue(seed, "más de una credencial")
+    }
+
+    @Test
+    fun `rechaza algoritmos de derivacion distintos del admitido`() {
+        val seed = baseline.copy(credentials = baseline.credentials.map { it.copy(algorithm = "MD5") })
+        assertIssue(seed, "solo se admite")
+    }
+
+    @Test
+    fun `rechaza costos de derivacion fuera de rango`() {
+        val seed = baseline.copy(credentials = baseline.credentials.map { it.copy(iterations = 1) })
+        assertIssue(seed, "debe estar entre")
+    }
+
+    @Test
+    fun `rechaza sales o hashes con un tamano invalido`() {
+        val seed = baseline.copy(credentials = baseline.credentials.map { it.copy(salt = "c2Fs", hash = "no es base64") })
+        val issues = validator.validate(seed)
+        assertTrue(issues.any { "Base64 de 16 bytes" in it })
+        assertTrue(issues.any { "Base64 de 32 bytes" in it })
+    }
+
+    @Test
+    fun `rechaza reutilizar la misma sal en dos cuentas`() {
+        val shared = baseline.credentials.first().salt
+        val seed = baseline.copy(credentials = baseline.credentials.map { it.copy(salt = shared) })
+        assertIssue(seed, "la sal debe ser distinta")
+    }
+
+    @Test
+    fun `rechaza cedulas fuera del rango ficticio reservado`() {
+        val seed = baseline.copy(users = baseline.users.map { it.copy(professionalLicense = "12345678") })
+        assertIssue(seed, "rango ficticio reservado 0000XXXX")
     }
 
     @Test

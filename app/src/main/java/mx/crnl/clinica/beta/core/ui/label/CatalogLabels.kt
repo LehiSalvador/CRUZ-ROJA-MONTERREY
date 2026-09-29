@@ -3,11 +3,18 @@ package mx.crnl.clinica.beta.core.ui.label
 import androidx.annotation.StringRes
 import mx.crnl.clinica.beta.R
 import mx.crnl.clinica.beta.core.ui.component.StatusTone
+import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentModality
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
+import mx.crnl.clinica.beta.domain.model.AssessmentStatus
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
+import mx.crnl.clinica.beta.domain.model.DuplicateReason
+import mx.crnl.clinica.beta.domain.model.EncounterStatus
+import mx.crnl.clinica.beta.domain.model.EncounterType
 import mx.crnl.clinica.beta.domain.model.PatientStatus
 import mx.crnl.clinica.beta.domain.model.PopulationType
+import mx.crnl.clinica.beta.domain.model.Sex
+import mx.crnl.clinica.beta.domain.model.UserRole
 
 @StringRes
 fun PatientStatus.labelRes(): Int = when (this) {
@@ -66,4 +73,67 @@ fun ClinicalArea.labelRes(): Int = when (this) {
     ClinicalArea.PSYCHOLOGY -> R.string.area_psychology
     ClinicalArea.NUTRITION -> R.string.area_nutrition
     ClinicalArea.GENERAL_MEDICINE -> R.string.area_general_medicine
+}
+
+@StringRes
+fun Sex.labelRes(): Int = when (this) {
+    Sex.FEMALE -> R.string.sex_female
+    Sex.MALE -> R.string.sex_male
+    Sex.OTHER -> R.string.sex_other
+}
+
+@StringRes
+fun UserRole.labelRes(): Int = when (this) {
+    UserRole.PROFESSIONAL -> R.string.role_professional
+    UserRole.AREA_COORDINATOR -> R.string.role_area_coordinator
+    UserRole.CLINICAL_ADMIN -> R.string.role_clinical_admin
+    UserRole.SYSTEM_ADMIN -> R.string.role_system_admin
+}
+
+@StringRes
+fun AccountStatus.labelRes(): Int = when (this) {
+    AccountStatus.ACTIVE -> R.string.account_status_active
+    AccountStatus.PENDING_APPROVAL -> R.string.account_status_pending_approval
+    AccountStatus.SUSPENDED -> R.string.account_status_suspended
+    AccountStatus.REJECTED -> R.string.account_status_rejected
+    AccountStatus.INACTIVE -> R.string.account_status_inactive
+}
+
+fun AccountStatus.tone(): StatusTone = when (this) {
+    AccountStatus.ACTIVE -> StatusTone.Success
+    AccountStatus.PENDING_APPROVAL -> StatusTone.Warning
+    AccountStatus.SUSPENDED, AccountStatus.REJECTED -> StatusTone.Danger
+    AccountStatus.INACTIVE -> StatusTone.Neutral
+}
+
+@StringRes
+fun EncounterType.labelRes(): Int = when (this) {
+    EncounterType.INITIAL -> R.string.encounter_type_initial
+    EncounterType.FOLLOW_UP -> R.string.encounter_type_follow_up
+    EncounterType.INTERVENTION -> R.string.encounter_type_intervention
+    EncounterType.ASSESSMENT -> R.string.encounter_type_assessment
+    EncounterType.CLOSURE -> R.string.encounter_type_closure
+    EncounterType.OTHER -> R.string.encounter_type_other
+}
+
+@StringRes
+fun EncounterStatus.labelRes(): Int = when (this) {
+    EncounterStatus.DRAFT -> R.string.encounter_status_draft
+    EncounterStatus.COMPLETED -> R.string.encounter_status_completed
+}
+
+@StringRes
+fun AssessmentStatus.labelRes(): Int = when (this) {
+    AssessmentStatus.STARTED -> R.string.assessment_status_started
+    AssessmentStatus.COMPLETED -> R.string.assessment_status_completed
+    AssessmentStatus.CANCELLED -> R.string.assessment_status_cancelled
+    AssessmentStatus.INVALIDATED -> R.string.assessment_status_invalidated
+}
+
+@StringRes
+fun DuplicateReason.labelRes(): Int = when (this) {
+    DuplicateReason.SAME_EMAIL -> R.string.duplicate_reason_email
+    DuplicateReason.SAME_PHONE -> R.string.duplicate_reason_phone
+    DuplicateReason.SAME_NAME_AND_BIRTH_DATE -> R.string.duplicate_reason_name
+    DuplicateReason.SIMILAR_NAME_AND_BIRTH_DATE -> R.string.duplicate_reason_similar_name
 }

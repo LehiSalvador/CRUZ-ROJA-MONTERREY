@@ -1,7 +1,7 @@
 {
   "meta": {
     "fictitious": true,
-    "seedVersion": 1,
+    "seedVersion": 2,
     "description": "Historial ficticio de asignaciones profesional-paciente. Los días son relativos al día de la primera carga."
   },
   "assignments": [

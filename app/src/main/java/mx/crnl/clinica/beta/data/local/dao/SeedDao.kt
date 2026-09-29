@@ -3,12 +3,14 @@ package mx.crnl.clinica.beta.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import androidx.room.Transaction
+import mx.crnl.clinica.beta.data.local.entity.AppointmentEntity
 import mx.crnl.clinica.beta.data.local.entity.AssessmentEntity
 import mx.crnl.clinica.beta.data.local.entity.AssessmentResultEntity
-import mx.crnl.clinica.beta.data.local.entity.AppointmentEntity
 import mx.crnl.clinica.beta.data.local.entity.AuditEntryEntity
 import mx.crnl.clinica.beta.data.local.entity.ClinicalEncounterEntity
+import mx.crnl.clinica.beta.data.local.entity.DemoCredentialEntity
 import mx.crnl.clinica.beta.data.local.entity.DemoUserEntity
 import mx.crnl.clinica.beta.data.local.entity.PatientContactEntity
 import mx.crnl.clinica.beta.data.local.entity.PatientEntity
@@ -17,6 +19,7 @@ import mx.crnl.clinica.beta.data.local.entity.ProfessionalAssignmentEntity
 /** Conjunto de registros iniciales a cargar en una sola transacción. */
 class SeedRecords(
     val users: List<DemoUserEntity>,
+    val credentials: List<DemoCredentialEntity>,
     val patients: List<PatientEntity>,
     val contacts: List<PatientContactEntity>,
     val assignments: List<ProfessionalAssignmentEntity>,
@@ -30,6 +33,7 @@ class SeedRecords(
 /** Filas realmente insertadas por tabla; los registros ya existentes no cuentan. */
 data class SeedCounts(
     val users: Int,
+    val credentials: Int,
     val patients: Int,
     val contacts: Int,
     val assignments: Int,
@@ -40,7 +44,7 @@ data class SeedCounts(
     val auditEntries: Int,
 ) {
     val total: Int
-        get() = users + patients + contacts + assignments + appointments + encounters + assessments + results + auditEntries
+        get() = users + credentials + patients + contacts + assignments + appointments + encounters + assessments + results + auditEntries
 }
 
 /**
@@ -51,6 +55,9 @@ data class SeedCounts(
 abstract class SeedDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     protected abstract suspend fun insertUsers(items: List<DemoUserEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    protected abstract suspend fun insertCredentials(items: List<DemoCredentialEntity>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     protected abstract suspend fun insertPatients(items: List<PatientEntity>): List<Long>
@@ -76,18 +83,27 @@ abstract class SeedDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     protected abstract suspend fun insertAuditEntries(items: List<AuditEntryEntity>): List<Long>
 
+    // Completa la cédula de cuentas cargadas por una versión anterior del conjunto; nunca pisa un valor existente.
+    @Query("UPDATE demo_users SET professionalLicense = :license WHERE userId = :userId AND professionalLicense IS NULL")
+    protected abstract suspend fun fillLicense(userId: String, license: String)
+
     @Transaction
-    open suspend fun insertAll(records: SeedRecords): SeedCounts = SeedCounts(
-        users = insertUsers(records.users).inserted(),
-        patients = insertPatients(records.patients).inserted(),
-        contacts = insertContacts(records.contacts).inserted(),
-        assignments = insertAssignments(records.assignments).inserted(),
-        appointments = insertAppointments(records.appointments).inserted(),
-        encounters = insertEncounters(records.encounters).inserted(),
-        assessments = insertAssessments(records.assessments).inserted(),
-        results = insertResults(records.results).inserted(),
-        auditEntries = insertAuditEntries(records.auditEntries).inserted(),
-    )
+    open suspend fun insertAll(records: SeedRecords): SeedCounts {
+        val users = insertUsers(records.users).inserted()
+        records.users.forEach { user -> user.professionalLicense?.let { fillLicense(user.userId, it) } }
+        return SeedCounts(
+            users = users,
+            credentials = insertCredentials(records.credentials).inserted(),
+            patients = insertPatients(records.patients).inserted(),
+            contacts = insertContacts(records.contacts).inserted(),
+            assignments = insertAssignments(records.assignments).inserted(),
+            appointments = insertAppointments(records.appointments).inserted(),
+            encounters = insertEncounters(records.encounters).inserted(),
+            assessments = insertAssessments(records.assessments).inserted(),
+            results = insertResults(records.results).inserted(),
+            auditEntries = insertAuditEntries(records.auditEntries).inserted(),
+        )
+    }
 
     // SQLite devuelve rowId -1 cuando IGNORE descarta la fila.
     private fun List<Long>.inserted(): Int = count { it != -1L }

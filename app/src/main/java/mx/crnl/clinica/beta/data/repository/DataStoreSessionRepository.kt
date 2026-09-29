@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -15,14 +16,25 @@ import kotlinx.coroutines.flow.map
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 
 class DataStoreSessionRepository(private val dataStore: DataStore<Preferences>) : SessionRepository {
-    override val isSessionActive: Flow<Boolean> = preferences().map { it[SESSION_ACTIVE] ?: false }.distinctUntilChanged()
+    // Una sesión sin usuario (la que dejaba la versión anterior) no es válida: se trata como ausente.
+    override val sessionUserId: Flow<String?> = preferences()
+        .map { preferences ->
+            preferences[LOGGED_USER_ID]?.takeIf { preferences[SESSION_ACTIVE] == true && it.isNotBlank() }
+        }
+        .distinctUntilChanged()
 
-    override suspend fun startSession() {
-        dataStore.edit { it[SESSION_ACTIVE] = true }
+    override suspend fun startSession(userId: String) {
+        dataStore.edit {
+            it[SESSION_ACTIVE] = true
+            it[LOGGED_USER_ID] = userId
+        }
     }
 
     override suspend fun endSession() {
-        dataStore.edit { it[SESSION_ACTIVE] = false }
+        dataStore.edit {
+            it[SESSION_ACTIVE] = false
+            it.remove(LOGGED_USER_ID)
+        }
     }
 
     override suspend fun appliedSeedVersion(): Int = preferences().first()[APPLIED_SEED_VERSION] ?: 0
@@ -36,6 +48,7 @@ class DataStoreSessionRepository(private val dataStore: DataStore<Preferences>) 
 
     private companion object {
         val SESSION_ACTIVE = booleanPreferencesKey("session_active")
+        val LOGGED_USER_ID = stringPreferencesKey("logged_user_id")
         val APPLIED_SEED_VERSION = intPreferencesKey("applied_seed_version")
     }
 }

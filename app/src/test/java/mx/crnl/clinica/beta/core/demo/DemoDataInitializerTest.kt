@@ -3,6 +3,7 @@ package mx.crnl.clinica.beta.core.demo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.ZonedDateTime
 import kotlinx.coroutines.test.runTest
+import mx.crnl.clinica.beta.data.local.dao.SeedRecords
 import mx.crnl.clinica.beta.testing.DatabaseTest
 import mx.crnl.clinica.beta.testing.FakeSessionRepository
 import mx.crnl.clinica.beta.testing.TestZone
@@ -26,7 +27,7 @@ class DemoDataInitializerTest : DatabaseTest() {
     ) = DemoDataInitializer(db.seedDao(), session, DemoSeedLoader(reader), clock)
 
     private val tables = listOf(
-        "demo_users", "patients", "patient_contacts", "professional_assignments", "appointments",
+        "demo_users", "demo_credentials", "patients", "patient_contacts", "professional_assignments", "appointments",
         "clinical_encounters", "assessments", "assessment_results", "audit_entries",
     )
 
@@ -42,6 +43,7 @@ class DemoDataInitializerTest : DatabaseTest() {
         assertTrue(outcome is SeedOutcome.Applied)
         val counts = (outcome as SeedOutcome.Applied).counts
         assertEquals(seed.users.size, counts.users)
+        assertEquals(seed.credentials.size, counts.credentials)
         assertEquals(seed.patients.size, counts.patients)
         assertEquals(seed.patients.sumOf { it.contacts.size }, counts.contacts)
         assertEquals(seed.assignments.size, counts.assignments)
@@ -106,6 +108,67 @@ class DemoDataInitializerTest : DatabaseTest() {
         val expectedStart = ZonedDateTime.of(2026, 9, 29, 10, 0, 0, 0, TestZone).toInstant().toEpochMilli()
         assertEquals(expectedStart, appointment!!.startDateTime)
         assertEquals(expectedStart + 50 * 60_000L, appointment.endDateTime)
+    }
+
+    @Test
+    fun `una instalacion de la version anterior recibe cuentas y credenciales sin tocar lo ya cargado`() = runTest {
+        val seed = DemoSeedLoader(assetReader()).load()
+        val full = DemoSeedMapper(clock).toRecords(seed)
+        val previousUsers = full.users.take(6).map { it.copy(professionalLicense = null) }
+        db.seedDao().insertAll(
+            SeedRecords(
+                users = previousUsers,
+                credentials = emptyList(),
+                patients = full.patients,
+                contacts = full.contacts,
+                assignments = full.assignments,
+                appointments = full.appointments,
+                encounters = full.encounters,
+                assessments = full.assessments,
+                results = full.results,
+                auditEntries = emptyList(),
+            ),
+        )
+        val patientsBefore = count("patients")
+        val session = FakeSessionRepository(seedVersion = 1)
+
+        val counts = (initializer(session).initialize() as SeedOutcome.Applied).counts
+
+        assertEquals(seed.users.size - previousUsers.size, counts.users)
+        assertEquals(seed.credentials.size, counts.credentials)
+        assertEquals(0, counts.patients + counts.contacts + counts.assignments + counts.appointments)
+        assertEquals(0, counts.encounters + counts.assessments + counts.results)
+        assertEquals(patientsBefore, count("patients"))
+        assertEquals(seed.users.size, count("demo_users"))
+        assertEquals(seed.credentials.size, count("demo_credentials"))
+        assertEquals("00000101", db.userDao().getById(previousUsers.first().userId)!!.professionalLicense)
+        assertEquals(DemoSeed.SUPPORTED_VERSION, session.appliedSeedVersion())
+        assertEquals(0, foreignKeyViolations())
+    }
+
+    @Test
+    fun `completar la cedula no pisa una cedula ya registrada`() = runTest {
+        val seed = DemoSeedLoader(assetReader()).load()
+        val full = DemoSeedMapper(clock).toRecords(seed)
+        val edited = full.users.first().copy(professionalLicense = "99999999")
+        db.seedDao().insertAll(
+            SeedRecords(
+                users = listOf(edited),
+                credentials = emptyList(),
+                patients = emptyList(),
+                contacts = emptyList(),
+                assignments = emptyList(),
+                appointments = emptyList(),
+                encounters = emptyList(),
+                assessments = emptyList(),
+                results = emptyList(),
+                auditEntries = emptyList(),
+            ),
+        )
+
+        initializer(FakeSessionRepository(seedVersion = 1)).initialize()
+
+        assertEquals("99999999", db.userDao().getById(edited.userId)!!.professionalLicense)
     }
 
     @Test

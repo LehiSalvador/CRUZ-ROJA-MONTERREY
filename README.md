@@ -1,6 +1,6 @@
 # Plataforma Clínica CRNL — Beta Android
 
-Aplicación Android nativa de la plataforma clínica de Cruz Roja Nuevo León. Este repositorio contiene la base técnica de la Beta (`0.1.0-beta`): arquitectura por capas, persistencia local, navegación y sistema de diseño sobre los que se construyen los módulos.
+Aplicación Android nativa de la plataforma clínica de Cruz Roja Nuevo León (`0.1.0-beta`). Incluye acceso local con cuentas ficticias, solicitud de cuenta, Inicio con indicadores reales y el núcleo de pacientes: listado y búsqueda, alta guiada con detección de posibles duplicados, expediente de lectura y edición de datos generales y de contacto.
 
 ## Stack
 
@@ -41,10 +41,11 @@ Compose UI → ViewModel → contrato de repository → implementación local �
 ```text
 app/                   MainActivity, ClinicalApplication, AppContainer (ensamblado manual), shell de navegación
 core/
-  database/            ClinicalDatabase (Room, esquema v1)
+  database/            ClinicalDatabase (Room, esquema v2) y migraciones
   datastore/           creación del DataStore de sesión
   demo/                carga, validación y mapeo del conjunto de datos ficticios
   navigation/          rutas tipadas y destinos de la barra inferior
+  security/            derivación y verificación de contraseñas (PBKDF2)
   ui/                  tema, componentes reutilizables, estados de UI y etiquetas de catálogos
   util/                zona horaria y formatos de fecha
 data/
@@ -52,26 +53,46 @@ data/
   repository/          implementaciones locales de los contratos
 domain/
   model/               modelos y catálogos sin dependencias de Android
-  repository/          contratos (PatientRepository, AppointmentRepository, SessionRepository)
-feature/               splash, auth, home, patients, appointments, requests, profile
+  patient/ account/ home/ text/   reglas puras: búsqueda, duplicados, folio, validaciones, indicadores de Inicio
+  repository/          contratos (Auth, Session, Patient, Appointment, Home)
+feature/               splash, auth, session, home, patients (listado, expediente, alta, edición), appointments, requests, profile
 ```
 
 - La UI depende solo de los contratos de `domain/repository`. Sustituir la fuente local por una API o Supabase consiste en implementar esos contratos y cambiar el ensamblado en `app/AppContainer.kt`.
 - Un solo módulo Gradle; las features se materializan como paquetes cuando tienen código.
 
+## Acceso y sesión
+
+- El acceso es **local y de Beta**: verifica correo y contraseña contra cuentas ficticias guardadas en Room. No es seguridad de producción ni usa credenciales institucionales.
+- Las contraseñas no se guardan: la tabla `demo_credentials` (1:1 con `demo_users`) conserva solo sal, algoritmo, costo y el resultado de PBKDF2-HMAC-SHA256. Las cuentas de prueba y sus contraseñas ficticias están en [`docs/BETA_ACCESS.md`](docs/BETA_ACCESS.md).
+- La decisión de acceso vive en `AuthRepository`: solo una cuenta `ACTIVE` con contraseña correcta abre sesión; `PENDING_APPROVAL`, `SUSPENDED`, `REJECTED` e `INACTIVE` se rechazan con su motivo, y un correo o contraseña incorrectos reciben el mismo mensaje.
+- DataStore guarda `session_active` y `logged_user_id`. Al arrancar, la sesión solo se restaura si el usuario existe y sigue activo; en otro caso se limpia y se vuelve al acceso. Cerrar sesión (o dejar de estar activa) regresa al acceso y vacía la pila de navegación autenticada.
+- **Solicitar cuenta** crea una cuenta `PENDING_APPROVAL` sin iniciar sesión y sin poder autoaprobarse; solo se piden roles clínicos.
+
+## Pacientes
+
+- Alta guiada en seis pasos (identificación, contacto, población, consentimientos, coincidencias y confirmación). Los consentimientos institucionales no están configurados, por lo que el paso no registra aceptación alguna.
+- El folio `CRNL-000001` se genera al guardar como el siguiente al mayor folio válido; el identificador técnico es un UUID distinto. La edad nunca se almacena.
+- Antes de crear (y al editar identidad o contacto) se buscan posibles duplicados por correo, teléfono y nombre con fecha de nacimiento. Es una advertencia con sus razones, nunca un bloqueo.
+- La búsqueda cubre folio, nombre, apellidos, teléfono, correo y fecha de nacimiento, sin distinguir mayúsculas ni acentos.
+- Alta, edición y consulta del expediente quedan en la bitácora (`audit_entries`) junto con inicio y cierre de sesión y solicitudes de cuenta, sin contraseñas ni datos clínicos.
+
 ## Datos de la Beta
 
-- Room guarda pacientes, contactos, asignaciones (con historial), citas, encuentros, evaluaciones y su bitácora de auditoría. Convenciones del modelo: UUID técnico separado del folio humano (`CRNL-000001`), edad calculada a partir de la fecha de nacimiento, timestamps en UTC, sin borrados en cascada (las claves foráneas usan `RESTRICT`).
-- En el primer arranque se cargan los JSON de `app/src/main/assets/seed_*.json` en una sola transacción. La versión aplicada se guarda en DataStore y las llaves determinísticas con `IGNORE` impiden duplicar filas aunque la carga se repita.
-- Antes de cargar, `DemoSeedValidator` comprueba que el conjunto es ficticio (correos en dominios `example.*`, teléfonos en un rango no asignable, instrumentos marcadores), que las referencias son válidas y que los códigos pertenecen a los catálogos.
+- Room guarda usuarios, credenciales, pacientes, contactos, asignaciones (con historial), citas, encuentros, evaluaciones y su bitácora de auditoría. Convenciones del modelo: UUID técnico separado del folio humano, timestamps en UTC, sin borrados en cascada (las claves foráneas usan `RESTRICT`) y sin borrado físico de pacientes.
+- El esquema es la versión 2 y `MIGRATION_1_2` actualiza instalaciones de la primera versión sin perder datos (nunca se recrea la base). Los esquemas se exportan a `app/schemas/` y una prueba de migración los verifica.
+- El conjunto ficticio (`app/src/main/assets/seed_*.json`) es un arranque, no la base viva: se carga en una sola transacción, es aditivo e idempotente (llaves determinísticas con `IGNORE`) y su versión aplicada se guarda en DataStore; una instalación anterior recibe solo lo que le falta.
+- Antes de cargar, `DemoSeedValidator` comprueba que el conjunto es ficticio (correos en dominios `example.*`, teléfonos y cédulas en rangos no asignables, instrumentos marcadores), que las referencias son válidas y que los códigos pertenecen a los catálogos.
 - Las fechas de la agenda se expresan como días relativos al primer arranque, de modo que la agenda nunca queda vencida.
-- Los esquemas de Room se exportan a `app/schemas/` para las futuras migraciones.
 
 ## Decisiones que no se deducen del código
 
 - **Versiones de Compose, Lifecycle y Navigation**: las publicaciones más recientes exigen `compileSdk 37`. Se fijaron las últimas estables compatibles con `compileSdk 36` (Compose BOM 2026.06.01, Lifecycle 2.10.0, Navigation Compose 2.9.8).
-- **Navegación**: Navigation Compose estable en lugar de Navigation 3, con un back stack independiente por pestaña.
-- **Acceso**: la pantalla de acceso es estructural; continúa a la shell sin verificar credenciales y guarda solo un indicador de sesión en DataStore.
+- **Navegación**: Navigation Compose estable en lugar de Navigation 3, con un back stack independiente por pestaña; la pestaña Pacientes es un grafo anidado que contiene listado, expediente, alta y edición. Los formularios ocultan la barra inferior.
+- **Pantallas de distinto tamaño**: el contenido se limita a una columna centrada de 640 dp (barra superior, botón flotante y barra de acciones se alinean con ella); en un teléfono horizontal (alto < 480 dp) la barra inferior se cambia por un riel lateral y las pantallas de formulario ocupan toda la pantalla.
+- **Costo de PBKDF2**: 120 000 iteraciones, guardadas con cada credencial para poder subirlas sin invalidar cuentas.
+- **Mis pacientes**: son los pacientes con una asignación vigente al profesional; crear un paciente no crea una asignación.
 - **`room-ktx`**: no se declara; en Room 2.8 esas extensiones viven en `room-runtime`.
+- **Prueba de migración**: crea la base de la versión 1 a partir del esquema exportado (`app/schemas/…/1.json`) y la abre con Room y `MIGRATION_1_2`; `MigrationTestHelper` no localiza los assets de esquemas bajo Robolectric, y así no se añade `room-testing`.
 - **Pruebas de DataStore**: corren bajo Robolectric porque DataStore reemplaza su archivo con `File.renameTo`, que en una JVM de Windows falla si el destino ya existe (en Android no).
 - **Seguridad**: `allowBackup` desactivado, sin permisos, sin tráfico HTTP en claro; los secretos, llaves y `.env` están excluidos por `.gitignore`.

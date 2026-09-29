@@ -9,16 +9,31 @@ import java.time.ZonedDateTime
 import mx.crnl.clinica.beta.core.demo.SeedFileReader
 import mx.crnl.clinica.beta.data.local.dao.SeedRecords
 import mx.crnl.clinica.beta.data.local.entity.AppointmentEntity
+import mx.crnl.clinica.beta.data.local.entity.DemoCredentialEntity
 import mx.crnl.clinica.beta.data.local.entity.DemoUserEntity
+import mx.crnl.clinica.beta.data.local.entity.PatientContactEntity
 import mx.crnl.clinica.beta.data.local.entity.PatientEntity
+import mx.crnl.clinica.beta.data.local.entity.ProfessionalAssignmentEntity
+import mx.crnl.clinica.beta.domain.model.AccountStatus
+import mx.crnl.clinica.beta.domain.model.ActiveAssignment
 import mx.crnl.clinica.beta.domain.model.AppointmentModality
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
+import mx.crnl.clinica.beta.domain.model.AssessmentSummary
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
+import mx.crnl.clinica.beta.domain.model.ContactType
+import mx.crnl.clinica.beta.domain.model.EncounterSummary
 import mx.crnl.clinica.beta.domain.model.Patient
+import mx.crnl.clinica.beta.domain.model.PatientAssignment
+import mx.crnl.clinica.beta.domain.model.PatientContact
+import mx.crnl.clinica.beta.domain.model.PatientDetail
+import mx.crnl.clinica.beta.domain.model.PatientDraft
+import mx.crnl.clinica.beta.domain.model.PatientRecord
 import mx.crnl.clinica.beta.domain.model.PatientStatus
 import mx.crnl.clinica.beta.domain.model.PopulationType
 import mx.crnl.clinica.beta.domain.model.Sex
+import mx.crnl.clinica.beta.domain.model.UserAccount
+import mx.crnl.clinica.beta.domain.model.UserRole
 
 val TestZone: ZoneId = ZoneId.of("America/Monterrey")
 
@@ -34,13 +49,17 @@ class FileSystemSeedReader(private val directory: File = File("src/main/assets")
 
 fun records(
     users: List<DemoUserEntity> = emptyList(),
+    credentials: List<DemoCredentialEntity> = emptyList(),
     patients: List<PatientEntity> = emptyList(),
+    contacts: List<PatientContactEntity> = emptyList(),
+    assignments: List<ProfessionalAssignmentEntity> = emptyList(),
     appointments: List<AppointmentEntity> = emptyList(),
 ): SeedRecords = SeedRecords(
     users = users,
+    credentials = credentials,
     patients = patients,
-    contacts = emptyList(),
-    assignments = emptyList(),
+    contacts = contacts,
+    assignments = assignments,
     appointments = appointments,
     encounters = emptyList(),
     assessments = emptyList(),
@@ -56,6 +75,8 @@ fun domainPatient(
     maternalSurname: String? = "Ibarra",
     birthDate: LocalDate = LocalDate.of(1998, 5, 14),
     status: PatientStatus = PatientStatus.ACTIVE,
+    sex: Sex = Sex.FEMALE,
+    updatedAt: Instant = Instant.EPOCH,
 ): Patient = Patient(
     patientId = id,
     patientNumber = number,
@@ -64,12 +85,66 @@ fun domainPatient(
     maternalSurname = maternalSurname,
     birthDate = birthDate,
     birthPlace = null,
-    sex = Sex.FEMALE,
+    sex = sex,
     municipality = "Monterrey",
     populationType = PopulationType.STUDENT,
     status = status,
     createdAt = Instant.EPOCH,
-    updatedAt = Instant.EPOCH,
+    updatedAt = updatedAt,
+)
+
+fun patientRecord(
+    patient: Patient = domainPatient(),
+    phone: String? = null,
+    email: String? = null,
+    assignments: List<ActiveAssignment> = emptyList(),
+): PatientRecord = PatientRecord(
+    patient = patient,
+    contacts = listOfNotNull(
+        phone?.let { PatientContact("phone-${patient.patientId}", ContactType.PHONE, it, true) },
+        email?.let { PatientContact("email-${patient.patientId}", ContactType.EMAIL, it, true) },
+    ),
+    assignments = assignments,
+)
+
+fun patientDraft(
+    firstName: String = "Beatriz",
+    paternalSurname: String = "Lozano",
+    maternalSurname: String? = "Garza",
+    birthDate: LocalDate = LocalDate.of(1995, 3, 8),
+    phone: String? = "8112345678",
+    email: String? = "beatriz.lozano@example.org",
+): PatientDraft = PatientDraft(
+    firstName = firstName,
+    paternalSurname = paternalSurname,
+    maternalSurname = maternalSurname,
+    birthDate = birthDate,
+    birthPlace = "Monterrey, Nuevo León",
+    sex = Sex.FEMALE,
+    municipality = "Monterrey",
+    populationType = PopulationType.GENERAL_PUBLIC,
+    phone = phone,
+    email = email,
+)
+
+fun userAccount(
+    id: String = "user-1",
+    firstName: String = "Mariana",
+    role: UserRole = UserRole.PROFESSIONAL,
+    area: ClinicalArea? = ClinicalArea.PSYCHOLOGY,
+    status: AccountStatus = AccountStatus.ACTIVE,
+    email: String = "$id@example.org",
+    license: String? = "00000103",
+): UserAccount = UserAccount(
+    userId = id,
+    firstName = firstName,
+    paternalSurname = "Elizondo",
+    maternalSurname = "Cantú",
+    email = email,
+    role = role,
+    area = area,
+    professionalLicense = license,
+    status = status,
 )
 
 fun domainAppointment(
@@ -78,13 +153,16 @@ fun domainAppointment(
     start: Instant = TestNow.toInstant(),
     minutes: Long = 50,
     status: AppointmentStatus = AppointmentStatus.SCHEDULED,
+    professionalId: String = "user-1",
+    area: ClinicalArea = ClinicalArea.PSYCHOLOGY,
 ): AppointmentSummary = AppointmentSummary(
     appointmentId = id,
     patientId = "patient-$id",
     patientName = patientName,
     patientNumber = "CRNL-000001",
+    professionalId = professionalId,
     professionalName = "Mariana Elizondo",
-    area = ClinicalArea.PSYCHOLOGY,
+    area = area,
     start = start,
     end = start.plusSeconds(minutes * 60),
     modality = AppointmentModality.IN_PERSON,
@@ -98,15 +176,33 @@ fun userEntity(
     area: String? = "PSYCHOLOGY",
     firstName: String = "Profesional",
     paternalSurname: String = "Prueba",
+    status: String = "ACTIVE",
+    email: String = "$id@example.org",
+    license: String? = null,
 ): DemoUserEntity = DemoUserEntity(
     userId = id,
     firstName = firstName,
     paternalSurname = paternalSurname,
     maternalSurname = null,
-    email = "$id@example.org",
+    email = email,
     roleCode = role,
     areaCode = area,
-    status = "ACTIVE",
+    status = status,
+    createdAt = 1_000L,
+    updatedAt = 1_000L,
+    professionalLicense = license,
+)
+
+fun credentialEntity(
+    userId: String = "user-1",
+    salt: String = "c2FsdA==",
+    hash: String = "aGFzaA==",
+): DemoCredentialEntity = DemoCredentialEntity(
+    userId = userId,
+    algorithm = "PBKDF2WithHmacSHA256",
+    iterations = 1_000,
+    salt = salt,
+    passwordHash = hash,
     createdAt = 1_000L,
     updatedAt = 1_000L,
 )
@@ -161,3 +257,51 @@ fun appointmentEntity(
     createdAt = 3_000L,
     updatedAt = 3_000L,
 )
+
+fun contactEntity(
+    id: String,
+    patientId: String = "patient-1",
+    type: String = "PHONE",
+    value: String = "+528100000101",
+    primary: Boolean = true,
+    status: String = "ACTIVE",
+    createdAt: Long = 2_500L,
+): PatientContactEntity = PatientContactEntity(
+    contactId = id,
+    patientId = patientId,
+    contactType = type,
+    contactValue = value,
+    isPrimary = primary,
+    status = status,
+    createdAt = createdAt,
+    updatedAt = createdAt,
+)
+
+fun assignmentEntity(
+    id: String,
+    patientId: String = "patient-1",
+    professionalId: String = "user-1",
+    area: String = "PSYCHOLOGY",
+    status: String = "ACTIVE",
+    assignedBy: String = "user-1",
+): ProfessionalAssignmentEntity = ProfessionalAssignmentEntity(
+    assignmentId = id,
+    patientId = patientId,
+    areaCode = area,
+    professionalId = professionalId,
+    startAt = 2_600L,
+    endAt = if (status == "ENDED") 2_700L else null,
+    status = status,
+    reason = null,
+    assignedBy = assignedBy,
+    createdAt = 2_600L,
+)
+
+fun patientDetail(
+    patient: Patient = domainPatient(),
+    contacts: List<PatientContact> = emptyList(),
+    assignments: List<PatientAssignment> = emptyList(),
+    appointments: List<AppointmentSummary> = emptyList(),
+    encounters: List<EncounterSummary> = emptyList(),
+    assessments: List<AssessmentSummary> = emptyList(),
+): PatientDetail = PatientDetail(patient, contacts, assignments, appointments, encounters, assessments)

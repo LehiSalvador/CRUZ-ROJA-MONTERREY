@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 private val MinTouchHeight = 48.dp
@@ -69,5 +70,5 @@ private fun RowScope.ButtonContent(text: String, loading: Boolean) {
         )
         Spacer(Modifier.width(8.dp))
     }
-    Text(text)
+    Text(text = text, textAlign = TextAlign.Center)
 }

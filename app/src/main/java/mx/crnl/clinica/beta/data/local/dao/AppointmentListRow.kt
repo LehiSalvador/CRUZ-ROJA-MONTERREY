@@ -8,6 +8,7 @@ data class AppointmentListRow(
     val patientPaternalSurname: String,
     val patientMaternalSurname: String?,
     val patientNumber: String,
+    val professionalId: String,
     val professionalFirstName: String,
     val professionalPaternalSurname: String,
     val areaCode: String,

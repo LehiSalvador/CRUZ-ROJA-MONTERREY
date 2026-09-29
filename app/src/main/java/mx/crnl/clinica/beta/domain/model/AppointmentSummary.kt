@@ -7,6 +7,7 @@ data class AppointmentSummary(
     val patientId: String,
     val patientName: String,
     val patientNumber: String,
+    val professionalId: String,
     val professionalName: String,
     val area: ClinicalArea,
     val start: Instant,

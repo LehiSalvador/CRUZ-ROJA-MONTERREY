@@ -2,11 +2,12 @@ package mx.crnl.clinica.beta.domain.repository
 
 import kotlinx.coroutines.flow.Flow
 
-/** Estado simple de sesión y configuración local; nunca contiene datos clínicos ni credenciales. */
+/** Estado local de sesión y configuración simple; nunca contiene datos clínicos ni credenciales. */
 interface SessionRepository {
-    val isSessionActive: Flow<Boolean>
+    /** Usuario con la sesión iniciada; nulo si no hay sesión. No garantiza que la cuenta siga activa. */
+    val sessionUserId: Flow<String?>
 
-    suspend fun startSession()
+    suspend fun startSession(userId: String)
 
     suspend fun endSession()
 

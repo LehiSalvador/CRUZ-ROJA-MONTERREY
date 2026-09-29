@@ -32,6 +32,7 @@ class AppointmentsViewModelTest {
         patientId = "patient-$id",
         patientName = "Paciente $id",
         patientNumber = "CRNL-000001",
+        professionalId = "user-1",
         professionalName = "Profesional",
         area = ClinicalArea.PSYCHOLOGY,
         start = start,

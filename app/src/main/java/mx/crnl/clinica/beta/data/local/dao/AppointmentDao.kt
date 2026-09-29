@@ -16,6 +16,7 @@ interface AppointmentDao {
                p.paternalSurname AS patientPaternalSurname,
                p.maternalSurname AS patientMaternalSurname,
                p.patientNumber AS patientNumber,
+               a.professionalId AS professionalId,
                u.firstName AS professionalFirstName,
                u.paternalSurname AS professionalPaternalSurname,
                a.areaCode AS areaCode,
@@ -31,6 +32,32 @@ interface AppointmentDao {
         """,
     )
     fun observeRows(): Flow<List<AppointmentListRow>>
+
+    @Query(
+        """
+        SELECT a.appointmentId AS appointmentId,
+               a.patientId AS patientId,
+               p.firstName AS patientFirstName,
+               p.paternalSurname AS patientPaternalSurname,
+               p.maternalSurname AS patientMaternalSurname,
+               p.patientNumber AS patientNumber,
+               a.professionalId AS professionalId,
+               u.firstName AS professionalFirstName,
+               u.paternalSurname AS professionalPaternalSurname,
+               a.areaCode AS areaCode,
+               a.startDateTime AS startDateTime,
+               a.endDateTime AS endDateTime,
+               a.modality AS modality,
+               a.location AS location,
+               a.status AS status
+        FROM appointments a
+        JOIN patients p ON p.patientId = a.patientId
+        JOIN demo_users u ON u.userId = a.professionalId
+        WHERE a.patientId = :patientId
+        ORDER BY a.startDateTime ASC
+        """,
+    )
+    fun observeRowsByPatient(patientId: String): Flow<List<AppointmentListRow>>
 
     @Query("SELECT * FROM appointments WHERE appointmentId = :appointmentId")
     suspend fun getById(appointmentId: String): AppointmentEntity?

@@ -1,8 +1,8 @@
 {
   "meta": {
     "fictitious": true,
-    "seedVersion": 1,
-    "description": "Personas ficticias para la Beta local. No corresponden a personal real; los correos usan dominios reservados para ejemplos."
+    "seedVersion": 2,
+    "description": "Personas ficticias para la Beta local. No corresponden a personal real; los correos usan dominios reservados para ejemplos y las cédulas están en un rango no asignable."
   },
   "users": [
     {
@@ -13,6 +13,7 @@
       "email": "claudia.benavides@example.org",
       "role": "AREA_COORDINATOR",
       "area": "PSYCHOLOGY",
+      "professionalLicense": "00000101",
       "status": "ACTIVE"
     },
     {
@@ -32,6 +33,7 @@
       "email": "mariana.elizondo@example.org",
       "role": "PROFESSIONAL",
       "area": "PSYCHOLOGY",
+      "professionalLicense": "00000103",
       "status": "ACTIVE"
     },
     {
@@ -42,6 +44,7 @@
       "email": "rodrigo.villarreal@example.org",
       "role": "PROFESSIONAL",
       "area": "PSYCHOLOGY",
+      "professionalLicense": "00000104",
       "status": "ACTIVE"
     },
     {
@@ -52,6 +55,7 @@
       "email": "paola.garza@example.org",
       "role": "PROFESSIONAL",
       "area": "NUTRITION",
+      "professionalLicense": "00000105",
       "status": "ACTIVE"
     },
     {
@@ -62,7 +66,52 @@
       "email": "eduardo.trevino@example.org",
       "role": "PROFESSIONAL",
       "area": "GENERAL_MEDICINE",
+      "professionalLicense": "00000106",
       "status": "ACTIVE"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000007",
+      "firstName": "Valeria",
+      "paternalSurname": "Ramos",
+      "maternalSurname": "Cisneros",
+      "email": "valeria.ramos@example.org",
+      "role": "PROFESSIONAL",
+      "area": "NUTRITION",
+      "professionalLicense": "00000107",
+      "status": "PENDING_APPROVAL"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000008",
+      "firstName": "Gerardo",
+      "paternalSurname": "Leal",
+      "maternalSurname": "Villarreal",
+      "email": "gerardo.leal@example.org",
+      "role": "PROFESSIONAL",
+      "area": "GENERAL_MEDICINE",
+      "professionalLicense": "00000108",
+      "status": "SUSPENDED"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-000000000009",
+      "firstName": "Iván",
+      "paternalSurname": "Rangel",
+      "maternalSurname": "Solís",
+      "email": "ivan.rangel@example.org",
+      "role": "PROFESSIONAL",
+      "area": "PSYCHOLOGY",
+      "professionalLicense": "00000109",
+      "status": "REJECTED"
+    },
+    {
+      "userId": "a0000000-0000-4000-8000-00000000000a",
+      "firstName": "Sofía",
+      "paternalSurname": "Cantú",
+      "maternalSurname": "Ochoa",
+      "email": "sofia.cantu@example.org",
+      "role": "PROFESSIONAL",
+      "area": "PSYCHOLOGY",
+      "professionalLicense": "00000110",
+      "status": "INACTIVE"
     }
   ]
 }

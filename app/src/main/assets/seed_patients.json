@@ -1,7 +1,7 @@
 {
   "meta": {
     "fictitious": true,
-    "seedVersion": 1,
+    "seedVersion": 2,
     "description": "Pacientes ficticios para la Beta local. Los teléfonos están en un rango no asignable y los correos usan dominios reservados para ejemplos."
   },
   "patients": [

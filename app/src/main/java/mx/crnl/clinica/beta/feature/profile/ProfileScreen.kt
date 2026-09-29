@@ -3,6 +3,7 @@ package mx.crnl.clinica.beta.feature.profile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,12 +14,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.ViewModelProvider
@@ -28,18 +29,20 @@ import mx.crnl.clinica.beta.BuildConfig
 import mx.crnl.clinica.beta.R
 import mx.crnl.clinica.beta.core.ui.component.ClinicalCard
 import mx.crnl.clinica.beta.core.ui.component.ClinicalTopBar
+import mx.crnl.clinica.beta.core.ui.component.LabeledValue
 import mx.crnl.clinica.beta.core.ui.component.SecondaryButton
 import mx.crnl.clinica.beta.core.ui.component.SectionHeader
+import mx.crnl.clinica.beta.core.ui.component.StatusChip
+import mx.crnl.clinica.beta.core.ui.label.labelRes
+import mx.crnl.clinica.beta.core.ui.label.tone
 import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
+import mx.crnl.clinica.beta.domain.model.UserAccount
 
 @Composable
-fun ProfileRoute(factory: ViewModelProvider.Factory, onSignedOut: () -> Unit) {
+fun ProfileRoute(factory: ViewModelProvider.Factory) {
     val viewModel: ProfileViewModel = viewModel(factory = factory)
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(state.isSignedOut) {
-        if (state.isSignedOut) onSignedOut()
-    }
     ProfileScreen(
         state = state,
         versionName = BuildConfig.VERSION_NAME,
@@ -70,17 +73,18 @@ fun ProfileScreen(
                     .padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
+                state.user?.let { AccountCard(it) }
                 ClinicalCard(modifier = Modifier.fillMaxWidth()) {
                     SectionHeader(title = stringResource(R.string.profile_about))
                     Column(
                         modifier = Modifier.padding(top = Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
-                        InfoRow(
+                        LabeledValue(
                             label = stringResource(R.string.profile_version_label),
                             value = stringResource(R.string.profile_version_value, versionName, versionCode),
                         )
-                        InfoRow(
+                        LabeledValue(
                             label = stringResource(R.string.profile_data_label),
                             value = stringResource(R.string.profile_data_value),
                         )
@@ -106,13 +110,27 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(text = value, style = MaterialTheme.typography.bodyLarge)
+private fun AccountCard(user: UserAccount) {
+    ClinicalCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text(
+                text = user.fullName,
+                modifier = Modifier.weight(1f).semantics { heading() },
+                style = MaterialTheme.typography.titleLarge,
+            )
+            StatusChip(label = stringResource(user.status.labelRes()), tone = user.status.tone())
+        }
+        Column(
+            modifier = Modifier.padding(top = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            LabeledValue(stringResource(R.string.profile_email), user.email)
+            LabeledValue(
+                stringResource(R.string.profile_area),
+                user.area?.let { stringResource(it.labelRes()) } ?: stringResource(R.string.profile_area_none),
+            )
+            LabeledValue(stringResource(R.string.profile_role), stringResource(user.role.labelRes()))
+            user.professionalLicense?.let { LabeledValue(stringResource(R.string.profile_license), it) }
+        }
     }
 }

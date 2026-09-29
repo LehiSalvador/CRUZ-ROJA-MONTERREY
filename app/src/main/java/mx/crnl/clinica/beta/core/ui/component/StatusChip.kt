@@ -12,7 +12,7 @@ import mx.crnl.clinica.beta.core.ui.theme.LocalStatusColors
 enum class StatusTone { Neutral, Info, Success, Warning, Danger }
 
 @Composable
-fun StatusChip(label: String, tone: StatusTone, modifier: Modifier = Modifier) {
+fun StatusChip(label: String, tone: StatusTone, modifier: Modifier = Modifier, singleLine: Boolean = true) {
     val scheme = MaterialTheme.colorScheme
     val status = LocalStatusColors.current
     val (container, content) = when (tone) {
@@ -32,7 +32,7 @@ fun StatusChip(label: String, tone: StatusTone, modifier: Modifier = Modifier) {
             text = label,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
+            maxLines = if (singleLine) 1 else Int.MAX_VALUE,
         )
     }
 }

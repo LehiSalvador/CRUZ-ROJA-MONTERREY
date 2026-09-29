@@ -20,4 +20,5 @@ data class DemoUserEntity(
     val status: String,
     val createdAt: Long,
     val updatedAt: Long,
+    val professionalLicense: String? = null,
 )

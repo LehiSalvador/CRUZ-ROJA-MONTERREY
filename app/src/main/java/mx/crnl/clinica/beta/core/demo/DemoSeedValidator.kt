@@ -3,6 +3,8 @@ package mx.crnl.clinica.beta.core.demo
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeParseException
+import java.util.Base64
+import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.AdministrationMode
 import mx.crnl.clinica.beta.domain.model.AppointmentModality
@@ -29,6 +31,7 @@ class DemoSeedValidator(private val today: LocalDate) {
         val report = Report()
         validateMetas(seed, report)
         val users = validateUsers(seed.users, report)
+        validateCredentials(seed.credentials, users, report)
         val patients = validatePatients(seed.patients, users, report)
         validateAssignments(seed.assignments, patients, users, report)
         val appointments = validateAppointments(seed.appointments, patients, users, report)
@@ -63,8 +66,44 @@ class DemoSeedValidator(private val today: LocalDate) {
             val area = report.enumValue<ClinicalArea>(file, "$at.area", user.area)
             report.enumValue<AccountStatus>(file, "$at.status", user.status)
             if (role == UserRole.PROFESSIONAL && area == null) report.add(file, at, "un profesional requiere área")
+            val license = user.professionalLicense
+            if (license != null && !FICTITIOUS_LICENSE.matches(license)) {
+                report.add(file, "$at.professionalLicense", "la cédula debe estar en el rango ficticio reservado 0000XXXX")
+            }
         }
         return users.associateBy { it.userId }
+    }
+
+    private fun validateCredentials(credentials: List<SeedCredential>, users: Map<String, SeedUser>, report: Report) {
+        val file = DemoSeed.CREDENTIALS_FILE
+        val withCredential = HashSet<String>()
+        val salts = HashSet<String>()
+        credentials.forEachIndexed { index, credential ->
+            val at = "credentials[$index]"
+            if (credential.userId !in users) report.add(file, "$at.userId", "usuario '${credential.userId}' inexistente")
+            if (!withCredential.add(credential.userId)) report.add(file, "$at.userId", "más de una credencial para '${credential.userId}'")
+            if (credential.algorithm != PasswordHasher.ALGORITHM) {
+                report.add(file, "$at.algorithm", "solo se admite ${PasswordHasher.ALGORITHM}")
+            }
+            if (credential.iterations !in MIN_HASH_ITERATIONS..MAX_HASH_ITERATIONS) {
+                report.add(file, "$at.iterations", "debe estar entre $MIN_HASH_ITERATIONS y $MAX_HASH_ITERATIONS")
+            }
+            if (base64Size(credential.salt) != PasswordHasher.SALT_BYTES) {
+                report.add(file, "$at.salt", "debe ser Base64 de ${PasswordHasher.SALT_BYTES} bytes")
+            }
+            if (base64Size(credential.hash) != PasswordHasher.KEY_BITS / 8) {
+                report.add(file, "$at.hash", "debe ser Base64 de ${PasswordHasher.KEY_BITS / 8} bytes")
+            }
+            if (!salts.add(credential.salt)) report.add(file, "$at.salt", "la sal debe ser distinta en cada cuenta")
+        }
+        users.keys.filterNot { it in withCredential }
+            .forEach { userId -> report.add(file, "credentials", "el usuario '$userId' no tiene credencial") }
+    }
+
+    private fun base64Size(value: String): Int? = try {
+        Base64.getDecoder().decode(value).size
+    } catch (_: IllegalArgumentException) {
+        null
     }
 
     private fun validatePatients(
@@ -325,6 +364,9 @@ class DemoSeedValidator(private val today: LocalDate) {
         val UUID_PATTERN = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
         val FOLIO_PATTERN = Regex("^CRNL-\\d{6}$")
         val FICTITIOUS_PHONE = Regex("^\\+52810000\\d{4}$")
+        val FICTITIOUS_LICENSE = Regex("^0000\\d{3,4}$")
+        const val MIN_HASH_ITERATIONS = 10_000
+        const val MAX_HASH_ITERATIONS = 1_000_000
         val FICTITIOUS_MEETING_URL = Regex("^https://([a-z0-9-]+\\.)*example\\.(org|com|net)(/.*)?$")
         val EXAMPLE_DOMAINS = setOf("example.org", "example.com", "example.net")
         val PAST_STATUSES = setOf(
