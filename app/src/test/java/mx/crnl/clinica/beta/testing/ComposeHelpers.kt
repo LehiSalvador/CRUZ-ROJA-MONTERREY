@@ -4,10 +4,12 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -70,6 +72,14 @@ fun ComposeTestRule.tap(text: String) {
     val target = hasText(text) and hasClickAction()
     onNode(target).scrollIntoViewIfNeeded()
     onNode(target).performClick()
+}
+
+/** Toca un control que solo tiene descripcion accesible (un boton de icono). */
+fun ComposeTestRule.tapDescription(description: String) {
+    waitUntilOrDescribe("No apareció el control «$description»", DEFAULT_TIMEOUT_MILLIS) {
+        onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+    }
+    onNode(hasContentDescription(description) and hasClickAction()).performClick()
 }
 
 fun ComposeTestRule.assertVisible(text: String) {

@@ -43,7 +43,7 @@ data class PatientDetailContent(
     val initialArea: ClinicalArea? = null,
 ) {
     fun capabilities(area: ClinicalArea): AreaCapabilities =
-        AreaCapabilitiesResolver.resolve(viewer, area, detail.activeAssignment(area))
+        AreaCapabilitiesResolver.resolve(viewer, area, detail.activeAssignment(area), detail.viewableAreas)
 
     /** Hay al menos un área donde se puede agendar una cita para este paciente. */
     val canSchedule: Boolean

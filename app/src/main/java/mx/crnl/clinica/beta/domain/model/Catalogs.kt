@@ -43,6 +43,15 @@ enum class AssessmentStatus { STARTED, COMPLETED, CANCELLED, INVALIDATED }
 
 enum class AdministrationMode { PROFESSIONAL_CAPTURE, SUPERVISED_PATIENT }
 
+/** Estado de una solicitud que otra persona revisa (acceso interárea o cambio de profesional). */
+enum class RequestStatus { PENDING, APPROVED, REJECTED }
+
+/** Alcance de un acceso interárea. Esta Beta solo concede lectura. */
+enum class AccessScope { READ }
+
+/** Estado de una concesión. Solo ACTIVE y REVOKED se guardan; EXPIRED se deduce de la vigencia. */
+enum class AccessGrantStatus { ACTIVE, REVOKED, EXPIRED }
+
 /** Acciones que la aplicación registra en la bitácora de auditoría; se persisten por nombre. */
 enum class AuditAction {
     LOGIN,
@@ -62,4 +71,17 @@ enum class AuditAction {
     APPOINTMENT_CANCELLED,
     APPOINTMENT_WHATSAPP_OPENED,
     ENCOUNTER_CREATED,
+    USER_APPROVED,
+    USER_REJECTED,
+    USER_SUSPENDED,
+    USER_REACTIVATED,
+    INTERAREA_REQUEST_CREATED,
+    INTERAREA_REQUEST_APPROVED,
+    INTERAREA_REQUEST_REJECTED,
+    ACCESS_GRANT_REVOKED,
+    OVERRIDE_REQUEST_CREATED,
+    OVERRIDE_REQUEST_APPROVED,
+    OVERRIDE_REQUEST_REJECTED,
+    SUPERVISED_PREVIEW_OPENED,
+    BETA_DATA_RESET,
 }

@@ -22,10 +22,11 @@ import mx.crnl.clinica.beta.data.local.entity.PatientEntity
 import mx.crnl.clinica.beta.data.local.mapper.personName
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.local.mapper.toRecord
+import mx.crnl.clinica.beta.data.local.mapper.toSummary
+import mx.crnl.clinica.beta.domain.access.InterareaAccessPolicy
 import mx.crnl.clinica.beta.domain.clinical.PatientDetailAssembler
+import mx.crnl.clinica.beta.domain.model.AccessGrant
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
-import mx.crnl.clinica.beta.domain.model.AssessmentStatus
-import mx.crnl.clinica.beta.domain.model.AssessmentSummary
 import mx.crnl.clinica.beta.domain.model.AuditAction
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.ContactType
@@ -41,6 +42,7 @@ import mx.crnl.clinica.beta.domain.model.PatientStatus
 import mx.crnl.clinica.beta.domain.model.PatientSummary
 import mx.crnl.clinica.beta.domain.model.PopulationType
 import mx.crnl.clinica.beta.domain.model.RecordStatus
+import mx.crnl.clinica.beta.domain.model.RequestStatus
 import mx.crnl.clinica.beta.domain.model.Sex
 import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.patient.DuplicateDetector
@@ -62,6 +64,10 @@ class LocalPatientRepository(
     private val detailDao = database.patientDetailDao()
     private val appointmentDao = database.appointmentDao()
     private val assignmentDao = database.assignmentDao()
+    private val assessmentDao = database.assessmentDao()
+    private val accessRequestDao = database.accessRequestDao()
+    private val overrideDao = database.overrideRequestDao()
+    private val grants = EffectiveGrantSource(database.accessGrantDao(), clock)
 
     override fun observePatients(query: String, filter: PatientFilter): Flow<List<PatientSummary>> =
         patientDao.observeAggregates()
@@ -75,15 +81,46 @@ class LocalPatientRepository(
 
     override suspend fun getPatient(patientId: String): Patient? = patientDao.getById(patientId)?.toDomain()
 
-    override fun observePatientDetail(patientId: String, viewer: UserAccount): Flow<PatientDetail?> = combine(
-        patientDao.observeWithContacts(patientId),
-        assignmentDao.observeRows(patientId),
-        appointmentDao.observeRowsByPatient(patientId),
-        detailDao.observeEncounters(patientId),
-        detailDao.observeAssessments(patientId),
-    ) { patient, assignments, appointments, encounters, assessments ->
-        patient?.toDetail(viewer, assignments, appointments.map { it.toDomain() }, encounters, assessments)
-    }.flowOn(Dispatchers.Default)
+    override fun observePatientDetail(patientId: String, viewer: UserAccount): Flow<PatientDetail?> {
+        val records = combine(
+            patientDao.observeWithContacts(patientId),
+            assignmentDao.observeRows(patientId),
+            appointmentDao.observeRowsByPatient(patientId),
+            detailDao.observeEncounters(patientId),
+            assessmentDao.observeRowsByPatient(patientId),
+        ) { patient, assignments, appointments, encounters, assessments ->
+            Records(patient, assignments, appointments.map { it.toDomain() }, encounters, assessments)
+        }
+        // Concesiones de lectura vigentes y solicitudes abiertas: lo que amplía o anuncia el acceso a áreas ajenas.
+        val access = combine(grants.observe(viewer), accessRequestDao.observeRows(), overrideDao.observeRows()) { active, requests, changes ->
+            Access(
+                grants = InterareaAccessPolicy.readableAreas(viewer, active, patientId, clock.instant()),
+                pendingAccess = requests
+                    .filter { it.patientId == patientId && it.requesterUserId == viewer.userId && it.status == RequestStatus.PENDING.name }
+                    .associate { ClinicalArea.valueOf(it.ownerAreaCode) to it.accessRequestId },
+                pendingChange = changes
+                    .filter { it.patientId == patientId && it.status == RequestStatus.PENDING.name }
+                    .associate { ClinicalArea.valueOf(it.areaCode) to it.overrideRequestId },
+            )
+        }
+        return combine(records, access) { data, extra ->
+            data.patient?.toDetail(viewer, data.assignments, data.appointments, data.encounters, data.assessments, extra)
+        }.flowOn(Dispatchers.Default)
+    }
+
+    private class Records(
+        val patient: PatientWithContacts?,
+        val assignments: List<AssignmentRow>,
+        val appointments: List<AppointmentSummary>,
+        val encounters: List<EncounterRow>,
+        val assessments: List<AssessmentRow>,
+    )
+
+    private class Access(
+        val grants: Map<ClinicalArea, AccessGrant>,
+        val pendingAccess: Map<ClinicalArea, String>,
+        val pendingChange: Map<ClinicalArea, String>,
+    )
 
     override suspend fun getPatientDraft(patientId: String): PatientDraft? {
         val patient = patientDao.getById(patientId) ?: return null
@@ -249,6 +286,7 @@ class LocalPatientRepository(
         appointments: List<AppointmentSummary>,
         encounters: List<EncounterRow>,
         assessments: List<AssessmentRow>,
+        access: Access,
     ) = PatientDetailAssembler.assemble(
         viewer = viewer,
         patient = patient.toDomain(),
@@ -274,17 +312,10 @@ class LocalPatientRepository(
                 appointmentId = it.appointmentId,
             )
         },
-        assessments = assessments.map {
-            AssessmentSummary(
-                assessmentId = it.assessmentId,
-                area = it.areaCode?.let(ClinicalArea::valueOf),
-                professionalName = personName(it.professionalFirstName, it.professionalPaternalSurname, null),
-                status = AssessmentStatus.valueOf(it.status),
-                startedAt = Instant.ofEpochMilli(it.startedAt),
-                hasResult = it.resultId != null,
-                classificationLabel = if (it.classificationCode == UNDEFINED_CLASSIFICATION) null else it.classificationLabel,
-            )
-        },
+        assessments = assessments.map { it.toSummary() },
+        grants = access.grants,
+        pendingAccessRequests = access.pendingAccess,
+        pendingChangeRequests = access.pendingChange,
     )
 
     private fun PatientFilter.accepts(record: PatientRecord): Boolean = when (this) {
@@ -294,7 +325,6 @@ class LocalPatientRepository(
 
     private companion object {
         const val ENTITY_PATIENT = "PATIENT"
-        const val UNDEFINED_CLASSIFICATION = "TBD"
 
         private val collator: Collator = Collator.getInstance(ClinicTime.locale).apply { strength = Collator.PRIMARY }
 

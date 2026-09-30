@@ -80,23 +80,69 @@ sealed interface AppRoute {
     @Serializable
     data class EncounterDetail(val encounterId: String) : AppRoute
 
+    /** Grafo de la pestaña Solicitudes: bandeja por categoría y el detalle de cada solicitud. */
+    @Serializable
+    data object RequestsGraph : AppRoute
+
     @Serializable
     data object Requests : AppRoute
 
     @Serializable
+    data class AccountDetail(val userId: String) : AppRoute
+
+    @Serializable
+    data class AccessRequestDetail(val requestId: String) : AppRoute
+
+    @Serializable
+    data class ChangeRequestDetail(val requestId: String) : AppRoute
+
+    /** Solicitud de lectura de un [area] (código de `ClinicalArea`) que la persona no ve por su rol. */
+    @Serializable
+    data class NewAccessRequest(val patientId: String, val area: String) : AppRoute
+
+    /** Solicitud de cambio del profesional vigente del [area] (código de `ClinicalArea`). */
+    @Serializable
+    data class NewProfessionalChange(val patientId: String, val area: String) : AppRoute
+
+    @Serializable
+    data class AssessmentDetail(val assessmentId: String) : AppRoute
+
+    /** Pantalla aislada del modo supervisado: sin barra inferior ni datos del paciente. */
+    @Serializable
+    data class SupervisedMode(val assessmentId: String) : AppRoute
+
+    /** Grafo de la pestaña Perfil: la cuenta, más las herramientas de administración si la persona las tiene. */
+    @Serializable
+    data object ProfileGraph : AppRoute
+
+    @Serializable
     data object Profile : AppRoute
+
+    @Serializable
+    data object UserDirectory : AppRoute
+
+    @Serializable
+    data class UserDirectoryDetail(val userId: String) : AppRoute
+
+    @Serializable
+    data object AuditLog : AppRoute
+
+    @Serializable
+    data object BetaTools : AppRoute
 }
 
 /** Destinos de la barra inferior de la shell principal: icono delineado en reposo y relleno al seleccionarse. */
 enum class TopLevelDestination(
     val route: AppRoute,
+    /** Pantalla raíz de la pestaña: volver a tocar la pestaña abierta regresa a ella. */
+    val root: AppRoute,
     @StringRes val labelRes: Int,
     val icon: ImageVector,
     val selectedIcon: ImageVector,
 ) {
-    HOME(AppRoute.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
-    PATIENTS(AppRoute.PatientsGraph, R.string.nav_patients, Icons.Outlined.Person, Icons.Filled.Person),
-    APPOINTMENTS(AppRoute.AppointmentsGraph, R.string.nav_appointments, Icons.Outlined.DateRange, Icons.Filled.DateRange),
-    REQUESTS(AppRoute.Requests, R.string.nav_requests, Icons.Outlined.Email, Icons.Filled.Email),
-    PROFILE(AppRoute.Profile, R.string.nav_profile, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
+    HOME(AppRoute.Home, AppRoute.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
+    PATIENTS(AppRoute.PatientsGraph, AppRoute.Patients, R.string.nav_patients, Icons.Outlined.Person, Icons.Filled.Person),
+    APPOINTMENTS(AppRoute.AppointmentsGraph, AppRoute.Appointments, R.string.nav_appointments, Icons.Outlined.DateRange, Icons.Filled.DateRange),
+    REQUESTS(AppRoute.RequestsGraph, AppRoute.Requests, R.string.nav_requests, Icons.Outlined.Email, Icons.Filled.Email),
+    PROFILE(AppRoute.ProfileGraph, AppRoute.Profile, R.string.nav_profile, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
 }

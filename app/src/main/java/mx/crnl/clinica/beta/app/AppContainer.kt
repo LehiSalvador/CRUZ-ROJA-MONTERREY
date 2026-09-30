@@ -17,18 +17,30 @@ import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.core.util.ClinicTime
 import mx.crnl.clinica.beta.data.repository.AuditRecorder
 import mx.crnl.clinica.beta.data.repository.DataStoreSessionRepository
+import mx.crnl.clinica.beta.data.repository.LocalAccessRequestRepository
+import mx.crnl.clinica.beta.data.repository.LocalAccountAdministrationRepository
 import mx.crnl.clinica.beta.data.repository.LocalAppointmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAssessmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAuditRepository
 import mx.crnl.clinica.beta.data.repository.LocalAuthRepository
+import mx.crnl.clinica.beta.data.repository.LocalBetaMaintenanceRepository
 import mx.crnl.clinica.beta.data.repository.LocalEncounterRepository
 import mx.crnl.clinica.beta.data.repository.LocalHomeRepository
 import mx.crnl.clinica.beta.data.repository.LocalPatientRepository
 import mx.crnl.clinica.beta.data.repository.LocalProfessionalAssignmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalProfessionalChangeRepository
+import mx.crnl.clinica.beta.domain.repository.AccessRequestRepository
+import mx.crnl.clinica.beta.domain.repository.AccountAdministrationRepository
 import mx.crnl.clinica.beta.domain.repository.AppointmentRepository
+import mx.crnl.clinica.beta.domain.repository.AssessmentRepository
+import mx.crnl.clinica.beta.domain.repository.AuditRepository
 import mx.crnl.clinica.beta.domain.repository.AuthRepository
+import mx.crnl.clinica.beta.domain.repository.BetaMaintenanceRepository
 import mx.crnl.clinica.beta.domain.repository.EncounterRepository
 import mx.crnl.clinica.beta.domain.repository.HomeRepository
 import mx.crnl.clinica.beta.domain.repository.PatientRepository
 import mx.crnl.clinica.beta.domain.repository.ProfessionalAssignmentRepository
+import mx.crnl.clinica.beta.domain.repository.ProfessionalChangeRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 
 /** Ensamblado manual de dependencias; cambiar de fuente de datos (p. ej. API remota) solo toca este archivo. */
@@ -40,6 +52,12 @@ interface AppContainer {
     val appointmentRepository: AppointmentRepository
     val assignmentRepository: ProfessionalAssignmentRepository
     val encounterRepository: EncounterRepository
+    val accountAdministrationRepository: AccountAdministrationRepository
+    val accessRequestRepository: AccessRequestRepository
+    val professionalChangeRepository: ProfessionalChangeRepository
+    val assessmentRepository: AssessmentRepository
+    val auditRepository: AuditRepository
+    val betaMaintenanceRepository: BetaMaintenanceRepository
     val homeRepository: HomeRepository
     val localDataInitializer: LocalDataInitializer
 }
@@ -82,6 +100,26 @@ class DefaultAppContainer(context: Context) : AppContainer {
     }
 
     override val homeRepository: HomeRepository by lazy { LocalHomeRepository(database, clock) }
+
+    override val accountAdministrationRepository: AccountAdministrationRepository by lazy {
+        LocalAccountAdministrationRepository(database, auditRecorder, clock)
+    }
+
+    override val accessRequestRepository: AccessRequestRepository by lazy {
+        LocalAccessRequestRepository(database, auditRecorder, clock, newId)
+    }
+
+    override val professionalChangeRepository: ProfessionalChangeRepository by lazy {
+        LocalProfessionalChangeRepository(database, auditRecorder, clock, newId)
+    }
+
+    override val assessmentRepository: AssessmentRepository by lazy { LocalAssessmentRepository(database, auditRecorder, clock) }
+
+    override val auditRepository: AuditRepository by lazy { LocalAuditRepository(database, clock) }
+
+    override val betaMaintenanceRepository: BetaMaintenanceRepository by lazy {
+        LocalBetaMaintenanceRepository(database, sessionRepository, localDataInitializer, auditRecorder)
+    }
 
     override val localDataInitializer: LocalDataInitializer by lazy {
         DemoDataInitializer(

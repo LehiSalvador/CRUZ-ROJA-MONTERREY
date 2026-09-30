@@ -57,6 +57,14 @@ interface ProfessionalAssignmentDao {
     @Query("SELECT COUNT(*) FROM professional_assignments WHERE patientId = :patientId AND areaCode = :areaCode AND status = 'ACTIVE'")
     suspend fun countActive(patientId: String, areaCode: String): Int
 
+    /** Asignaciones (vigentes y cerradas) del paciente en el área: indica que el área lo ha atendido. */
+    @Query("SELECT COUNT(*) FROM professional_assignments WHERE patientId = :patientId AND areaCode = :areaCode")
+    suspend fun countForArea(patientId: String, areaCode: String): Int
+
     @Insert
     suspend fun insert(assignment: ProfessionalAssignmentEntity)
+
+    /** Cierra una asignación solo si sigue vigente (un cambio de profesional cierra, nunca reescribe); devuelve las filas cambiadas. */
+    @Query("UPDATE professional_assignments SET status = 'ENDED', endAt = :endAt WHERE assignmentId = :assignmentId AND status = 'ACTIVE'")
+    suspend fun end(assignmentId: String, endAt: Long): Int
 }

@@ -14,6 +14,7 @@ import mx.crnl.clinica.beta.data.local.entity.AppointmentEntity
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.local.mapper.toSummary
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.access.InterareaAccessPolicy
 import mx.crnl.clinica.beta.domain.appointment.AppointmentAction
 import mx.crnl.clinica.beta.domain.appointment.AppointmentConflictDetector
 import mx.crnl.clinica.beta.domain.appointment.AppointmentField
@@ -24,6 +25,7 @@ import mx.crnl.clinica.beta.domain.appointment.ScheduleSlot
 import mx.crnl.clinica.beta.domain.common.EntityKind
 import mx.crnl.clinica.beta.domain.common.OperationError
 import mx.crnl.clinica.beta.domain.common.OperationResult
+import mx.crnl.clinica.beta.domain.model.AccessGrant
 import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentAdminUpdate
 import mx.crnl.clinica.beta.domain.model.AppointmentDetail
@@ -53,6 +55,7 @@ class LocalAppointmentRepository(
     private val encounterDao = database.encounterDao()
     private val patientDao = database.patientDao()
     private val userDao = database.userDao()
+    private val grants = EffectiveGrantSource(database.accessGrantDao(), clock)
 
     // ---------------------------------------------------------------- lecturas
 
@@ -63,21 +66,26 @@ class LocalAppointmentRepository(
             .flowOn(Dispatchers.Default)
     }
 
-    override fun observePatientAppointments(patientId: String, viewer: UserAccount): Flow<List<AppointmentSummary>> {
-        val viewable = BetaClinicalAccessPolicy.viewableAreas(viewer)
-        return appointmentDao.observeRowsByPatient(patientId)
-            .map { rows -> rows.map { it.toDomain() }.filter { it.area in viewable } }
-            .flowOn(Dispatchers.Default)
-    }
+    // Leer un área es por rol o por una concesión de lectura vigente sobre ese paciente; escribir nunca depende de ella.
+    override fun observePatientAppointments(patientId: String, viewer: UserAccount): Flow<List<AppointmentSummary>> =
+        combine(appointmentDao.observeRowsByPatient(patientId), grants.observe(viewer)) { rows, active ->
+            val readable = readableAreas(viewer, active, patientId)
+            rows.map { it.toDomain() }.filter { it.area in readable }
+        }.flowOn(Dispatchers.Default)
 
     override fun observeAppointment(appointmentId: String, viewer: UserAccount): Flow<AppointmentDetail?> = combine(
         appointmentDao.observeDetailRow(appointmentId),
         encounterDao.observeRowsByAppointment(appointmentId),
-    ) { row, encounters ->
+        grants.observe(viewer),
+    ) { row, encounters, active ->
         row
-            ?.takeIf { BetaClinicalAccessPolicy.canViewAreaDetail(viewer, ClinicalArea.valueOf(it.areaCode)) }
+            ?.takeIf { ClinicalArea.valueOf(it.areaCode) in readableAreas(viewer, active, it.patientId) }
             ?.toDomain(encounters.map { it.toSummary() })
     }.flowOn(Dispatchers.Default)
+
+    private fun readableAreas(viewer: UserAccount, active: List<AccessGrant>, patientId: String): Set<ClinicalArea> =
+        BetaClinicalAccessPolicy.viewableAreas(viewer) +
+            InterareaAccessPolicy.readableAreas(viewer, active, patientId, clock.instant()).keys
 
     override suspend fun getAppointment(appointmentId: String, viewer: UserAccount): AppointmentDetail? =
         observeAppointment(appointmentId, viewer).first()

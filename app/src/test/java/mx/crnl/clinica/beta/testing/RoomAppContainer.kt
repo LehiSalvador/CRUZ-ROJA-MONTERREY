@@ -7,12 +7,18 @@ import mx.crnl.clinica.beta.core.demo.LocalDataInitializer
 import mx.crnl.clinica.beta.core.demo.SeedOutcome
 import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.data.repository.AuditRecorder
+import mx.crnl.clinica.beta.data.repository.LocalAccessRequestRepository
+import mx.crnl.clinica.beta.data.repository.LocalAccountAdministrationRepository
 import mx.crnl.clinica.beta.data.repository.LocalAppointmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAssessmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAuditRepository
 import mx.crnl.clinica.beta.data.repository.LocalAuthRepository
+import mx.crnl.clinica.beta.data.repository.LocalBetaMaintenanceRepository
 import mx.crnl.clinica.beta.data.repository.LocalEncounterRepository
 import mx.crnl.clinica.beta.data.repository.LocalHomeRepository
 import mx.crnl.clinica.beta.data.repository.LocalPatientRepository
 import mx.crnl.clinica.beta.data.repository.LocalProfessionalAssignmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalProfessionalChangeRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 
 /** El ensamblado real de la app (repositorios locales sobre Room) con sesión en memoria y reloj fijo. */
@@ -20,6 +26,7 @@ class RoomAppContainer(
     database: ClinicalDatabase,
     override val sessionRepository: SessionRepository = FakeSessionRepository(),
     override val clock: Clock = fixedClock(),
+    initializer: LocalDataInitializer = LocalDataInitializer { SeedOutcome.AlreadyApplied },
 ) : AppContainer {
     private var sequence = 0
     private val newId: () -> String = { "ui-${sequence++}" }
@@ -31,5 +38,11 @@ class RoomAppContainer(
     override val assignmentRepository = LocalProfessionalAssignmentRepository(database, audit, clock, newId)
     override val encounterRepository = LocalEncounterRepository(database, audit, clock, newId)
     override val homeRepository = LocalHomeRepository(database, clock)
-    override val localDataInitializer = LocalDataInitializer { SeedOutcome.AlreadyApplied }
+    override val accountAdministrationRepository = LocalAccountAdministrationRepository(database, audit, clock)
+    override val accessRequestRepository = LocalAccessRequestRepository(database, audit, clock, newId)
+    override val professionalChangeRepository = LocalProfessionalChangeRepository(database, audit, clock, newId)
+    override val assessmentRepository = LocalAssessmentRepository(database, audit, clock)
+    override val auditRepository = LocalAuditRepository(database, clock)
+    override val localDataInitializer = initializer
+    override val betaMaintenanceRepository = LocalBetaMaintenanceRepository(database, sessionRepository, localDataInitializer, audit)
 }

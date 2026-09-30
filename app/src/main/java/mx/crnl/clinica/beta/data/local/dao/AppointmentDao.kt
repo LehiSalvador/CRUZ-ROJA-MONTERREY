@@ -91,6 +91,16 @@ interface AppointmentDao {
     )
     suspend fun findOverlapping(patientId: String, professionalId: String, start: Long, end: Long): List<AppointmentEntity>
 
+    /** Citas todavía por ocurrir del paciente con el profesional en el área: las que un cambio de profesional no reasigna solo. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM appointments
+        WHERE patientId = :patientId AND areaCode = :areaCode AND professionalId = :professionalId
+          AND status IN ('PENDING', 'SCHEDULED', 'CONFIRMED', 'RESCHEDULED') AND endDateTime >= :now
+        """,
+    )
+    suspend fun countOpenUpcoming(patientId: String, areaCode: String, professionalId: String, now: Long): Int
+
     @Insert
     suspend fun insert(appointment: AppointmentEntity)
 

@@ -1,5 +1,6 @@
 package mx.crnl.clinica.beta.app
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -13,8 +14,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailDefaults
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -26,9 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,14 +48,21 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import mx.crnl.clinica.beta.R
 import mx.crnl.clinica.beta.core.navigation.AppRoute
+import mx.crnl.clinica.beta.core.navigation.BottomBarLayout
 import mx.crnl.clinica.beta.core.navigation.TopLevelDestination
 import mx.crnl.clinica.beta.core.ui.theme.isCompactLandscape
+import mx.crnl.clinica.beta.feature.admin.AuditRoute
+import mx.crnl.clinica.beta.feature.admin.BetaToolsRoute
+import mx.crnl.clinica.beta.feature.admin.UserDirectoryRoute
 import mx.crnl.clinica.beta.feature.appointments.AppointmentsRoute
 import mx.crnl.clinica.beta.feature.appointments.detail.AppointmentDetailActions
 import mx.crnl.clinica.beta.feature.appointments.detail.AppointmentDetailRoute
 import mx.crnl.clinica.beta.feature.appointments.form.EditAppointmentRoute
 import mx.crnl.clinica.beta.feature.appointments.form.NewAppointmentRoute
 import mx.crnl.clinica.beta.feature.appointments.form.RescheduleAppointmentRoute
+import mx.crnl.clinica.beta.feature.assessments.AssessmentDetailActions
+import mx.crnl.clinica.beta.feature.assessments.AssessmentDetailRoute
+import mx.crnl.clinica.beta.feature.assessments.SupervisedModeRoute
 import mx.crnl.clinica.beta.feature.assignments.AssignProfessionalRoute
 import mx.crnl.clinica.beta.feature.encounters.EncounterDetailRoute
 import mx.crnl.clinica.beta.feature.encounters.NewEncounterRoute
@@ -63,8 +73,15 @@ import mx.crnl.clinica.beta.feature.patients.create.NewPatientRoute
 import mx.crnl.clinica.beta.feature.patients.detail.PatientDetailActions
 import mx.crnl.clinica.beta.feature.patients.detail.PatientDetailRoute
 import mx.crnl.clinica.beta.feature.patients.edit.EditPatientRoute
+import mx.crnl.clinica.beta.feature.profile.ProfileActions
 import mx.crnl.clinica.beta.feature.profile.ProfileRoute
-import mx.crnl.clinica.beta.feature.requests.RequestsScreen
+import mx.crnl.clinica.beta.feature.requests.AccessRequestDetailRoute
+import mx.crnl.clinica.beta.feature.requests.AccountDetailRoute
+import mx.crnl.clinica.beta.feature.requests.ChangeRequestDetailRoute
+import mx.crnl.clinica.beta.feature.requests.NewAccessRequestRoute
+import mx.crnl.clinica.beta.feature.requests.NewProfessionalChangeRoute
+import mx.crnl.clinica.beta.feature.requests.RequestsActions
+import mx.crnl.clinica.beta.feature.requests.RequestsRoute
 import mx.crnl.clinica.beta.feature.session.SessionGuardViewModel
 
 /** Shell principal: barra inferior (riel lateral en un teléfono horizontal) con un back stack independiente por pestaña. */
@@ -100,7 +117,14 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
 
     // En un teléfono horizontal la barra inferior gastaría casi una cuarta parte del alto: se usa un riel lateral.
     val useRail = isCompactLandscape()
-    val onNavigate: (TopLevelDestination) -> Unit = { destination -> navController.navigateToTopLevel(destination) }
+    // Tocar la pestaña ya abierta regresa a su pantalla raíz; tocar otra conserva lo que había abierto en ella.
+    val onNavigate: (TopLevelDestination) -> Unit = { destination ->
+        if (currentDestination.isIn(destination)) {
+            navController.popBackStack(destination.root, inclusive = false)
+        } else {
+            navController.navigateToTopLevel(destination)
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -135,6 +159,7 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                             onOpenAppointment = { appointmentId -> navController.openAppointmentsTab(AppRoute.AppointmentDetail(appointmentId)) },
                             onNewAppointment = { navController.openAppointmentsTab(AppRoute.NewAppointment()) },
                             onOpenRequests = { navController.navigateToTopLevel(TopLevelDestination.REQUESTS) },
+                            onOpenAdministration = { navController.navigateToTopLevel(TopLevelDestination.PROFILE) },
                         ),
                     )
                 }
@@ -163,8 +188,48 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                                 },
                                 onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
                                 onOpenEncounter = { encounterId -> navController.navigate(AppRoute.EncounterDetail(encounterId)) },
+                                onRequestAccess = { patientId, area -> navController.navigate(AppRoute.NewAccessRequest(patientId, area.name)) },
+                                onOpenAccessRequest = { requestId -> navController.openRequestsTab(AppRoute.AccessRequestDetail(requestId)) },
+                                onRequestProfessionalChange = { patientId, area ->
+                                    navController.navigate(AppRoute.NewProfessionalChange(patientId, area.name))
+                                },
+                                onOpenChangeRequest = { requestId -> navController.openRequestsTab(AppRoute.ChangeRequestDetail(requestId)) },
+                                onOpenAssessment = { assessmentId -> navController.navigate(AppRoute.AssessmentDetail(assessmentId)) },
                             ),
                         )
+                    }
+                    composable<AppRoute.NewAccessRequest> {
+                        NewAccessRequestRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onSent = {
+                                announce(resources.getString(R.string.access_sent_message))
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+                    composable<AppRoute.NewProfessionalChange> {
+                        NewProfessionalChangeRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onSent = {
+                                announce(resources.getString(R.string.change_sent_message))
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+                    composable<AppRoute.AssessmentDetail> {
+                        AssessmentDetailRoute(
+                            factory = factory,
+                            actions = AssessmentDetailActions(
+                                onNavigateUp = { navController.popBackStack() },
+                                onOpenEncounter = { encounterId -> navController.navigate(AppRoute.EncounterDetail(encounterId)) },
+                                onOpenSupervised = { assessmentId -> navController.navigate(AppRoute.SupervisedMode(assessmentId)) },
+                            ),
+                        )
+                    }
+                    composable<AppRoute.SupervisedMode> {
+                        SupervisedModeRoute(factory = factory, onExit = { navController.popBackStack() })
                     }
                     composable<AppRoute.AssignProfessional> {
                         AssignProfessionalRoute(
@@ -283,8 +348,59 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                         )
                     }
                 }
-                composable<AppRoute.Requests> { RequestsScreen() }
-                composable<AppRoute.Profile> { ProfileRoute(factory) }
+                navigation<AppRoute.RequestsGraph>(startDestination = AppRoute.Requests) {
+                    composable<AppRoute.Requests> {
+                        RequestsRoute(
+                            factory = factory,
+                            actions = RequestsActions(
+                                onOpenAccount = { userId -> navController.navigate(AppRoute.AccountDetail(userId)) },
+                                onOpenAccess = { requestId -> navController.navigate(AppRoute.AccessRequestDetail(requestId)) },
+                                onOpenChange = { requestId -> navController.navigate(AppRoute.ChangeRequestDetail(requestId)) },
+                            ),
+                        )
+                    }
+                    composable<AppRoute.AccountDetail> {
+                        AccountDetailRoute(factory = factory, onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable<AppRoute.AccessRequestDetail> {
+                        AccessRequestDetailRoute(
+                            factory = factory,
+                            onNavigateUp = { navController.popBackStack() },
+                            onOpenPatient = { patientId, area -> navController.openPatientsTab(AppRoute.PatientDetail(patientId, area)) },
+                        )
+                    }
+                    composable<AppRoute.ChangeRequestDetail> {
+                        ChangeRequestDetailRoute(
+                            factory = factory,
+                            onNavigateUp = { navController.popBackStack() },
+                            onOpenPatient = { patientId, area -> navController.openPatientsTab(AppRoute.PatientDetail(patientId, area)) },
+                        )
+                    }
+                }
+                navigation<AppRoute.ProfileGraph>(startDestination = AppRoute.Profile) {
+                    composable<AppRoute.Profile> {
+                        ProfileRoute(
+                            factory = factory,
+                            actions = ProfileActions(
+                                onOpenUsers = { navController.navigate(AppRoute.UserDirectory) },
+                                onOpenAudit = { navController.navigate(AppRoute.AuditLog) },
+                                onOpenTools = { navController.navigate(AppRoute.BetaTools) },
+                            ),
+                        )
+                    }
+                    composable<AppRoute.UserDirectory> {
+                        UserDirectoryRoute(
+                            factory = factory,
+                            onNavigateUp = { navController.popBackStack() },
+                            onOpenUser = { userId -> navController.navigate(AppRoute.UserDirectoryDetail(userId)) },
+                        )
+                    }
+                    composable<AppRoute.UserDirectoryDetail> {
+                        AccountDetailRoute(factory = factory, onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable<AppRoute.AuditLog> { AuditRoute(factory = factory, onNavigateUp = { navController.popBackStack() }) }
+                    composable<AppRoute.BetaTools> { BetaToolsRoute(factory = factory, onNavigateUp = { navController.popBackStack() }) }
+                }
             }
         }
     }
@@ -318,6 +434,15 @@ private fun NavController.openAppointmentsTab(destination: AppRoute) {
     navigate(destination)
 }
 
+/** Igual que [openPatientsTab] para la pestaña Solicitudes: Atrás vuelve a la bandeja. */
+private fun NavController.openRequestsTab(destination: AppRoute) {
+    navigate(AppRoute.RequestsGraph) {
+        popUpTo(graph.findStartDestination().id)
+        launchSingleTop = true
+    }
+    navigate(destination)
+}
+
 // Pantallas de formulario: ocupan todo el alto y ocultan la barra inferior para no abandonarse por accidente.
 private val FORM_ROUTES = listOf(
     AppRoute.NewPatient::class,
@@ -327,39 +452,67 @@ private val FORM_ROUTES = listOf(
     AppRoute.RescheduleAppointment::class,
     AppRoute.AssignProfessional::class,
     AppRoute.NewEncounter::class,
+    AppRoute.NewAccessRequest::class,
+    AppRoute.NewProfessionalChange::class,
+    AppRoute.SupervisedMode::class,
 )
 
 @Composable
 private fun MainNavigationBar(currentDestination: NavDestination?, onNavigate: (TopLevelDestination) -> Unit) {
-    NavigationBar {
-        TopLevelDestination.entries.forEach { destination ->
-            val selected = currentDestination.isIn(destination)
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(destination) },
-                icon = { DestinationIcon(destination, selected) },
-                // Con fuentes grandes cinco etiquetas no caben: se recorta con puntos suspensivos en lugar de partir la palabra.
-                label = { DestinationLabel(destination) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
-            )
+    // Con fuentes grandes cinco etiquetas no caben en el ancho de la barra: en lugar de cortarlas, se miden y, si alguna no
+    // cabe, la barra muestra solo los iconos (cada uno conserva su nombre para lectores de pantalla y la pantalla abierta
+    // dice en su título dónde está la persona).
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val style = MaterialTheme.typography.labelMedium
+    val labels = TopLevelDestination.entries.map { stringResource(it.labelRes) }
+    BoxWithConstraints {
+        val showLabels = BottomBarLayout.labelsFit(
+            labelWidths = labels.map { label -> with(density) { measurer.measure(label, style, maxLines = 1).size.width.toDp() } },
+            barWidth = maxWidth,
+            itemPadding = LabelHorizontalPadding,
+        )
+        NavigationBar {
+            TopLevelDestination.entries.forEach { destination ->
+                val selected = currentDestination.isIn(destination)
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onNavigate(destination) },
+                    icon = { DestinationIcon(destination, selected, describe = !showLabels) },
+                    label = if (showLabels) {
+                        { DestinationLabel(destination) }
+                    } else {
+                        null
+                    },
+                    alwaysShowLabel = showLabels,
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun MainNavigationRail(currentDestination: NavDestination?, onNavigate: (TopLevelDestination) -> Unit) {
+    // El riel apila los cinco destinos en el alto disponible; con fuentes grandes las etiquetas ya no caben y se muestran solo iconos.
+    val showLabels = LocalDensity.current.fontScale <= RailLabelsMaxFontScale
     NavigationRail {
         TopLevelDestination.entries.forEach { destination ->
             val selected = currentDestination.isIn(destination)
             NavigationRailItem(
                 selected = selected,
                 onClick = { onNavigate(destination) },
-                icon = { DestinationIcon(destination, selected) },
-                label = { DestinationLabel(destination) },
+                icon = { DestinationIcon(destination, selected, describe = !showLabels) },
+                label = if (showLabels) {
+                    { DestinationLabel(destination) }
+                } else {
+                    null
+                },
+                alwaysShowLabel = showLabels,
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -371,10 +524,11 @@ private fun MainNavigationRail(currentDestination: NavDestination?, onNavigate: 
 }
 
 @Composable
-private fun DestinationIcon(destination: TopLevelDestination, selected: Boolean) {
+private fun DestinationIcon(destination: TopLevelDestination, selected: Boolean, describe: Boolean) {
     Icon(
         imageVector = if (selected) destination.selectedIcon else destination.icon,
-        contentDescription = null,
+        // Sin etiqueta visible el icono es lo único que nombra al destino.
+        contentDescription = if (describe) stringResource(destination.labelRes) else null,
     )
 }
 
@@ -383,9 +537,14 @@ private fun DestinationLabel(destination: TopLevelDestination) {
     Text(
         text = stringResource(destination.labelRes),
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        softWrap = false,
     )
 }
+
+private val LabelHorizontalPadding = 8.dp
+
+// Por encima de esta escala de fuente, cinco etiquetas apiladas ya no caben en el alto del riel.
+private const val RailLabelsMaxFontScale = 1.3f
 
 private fun NavDestination?.isIn(destination: TopLevelDestination): Boolean =
     this?.hierarchy?.any { it.hasRoute(destination.route::class) } == true

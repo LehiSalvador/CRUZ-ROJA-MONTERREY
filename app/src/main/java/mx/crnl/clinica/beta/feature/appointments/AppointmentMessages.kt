@@ -70,6 +70,16 @@ fun OperationError.messageRes(): Int = when (this) {
     is OperationError.NotEditable -> R.string.error_not_editable
     OperationError.AppointmentMismatch -> R.string.error_appointment_mismatch
     OperationError.DuplicateEncounter -> R.string.error_duplicate_encounter
+    is OperationError.AccountStatusChanged -> R.string.error_account_status_changed
+    is OperationError.RequestAlreadyResolved -> R.string.error_request_already_resolved
+    OperationError.InvalidReason -> R.string.error_invalid_reason
+    OperationError.DuplicatePendingRequest -> R.string.error_duplicate_pending_request
+    OperationError.AreaAlreadyReadable -> R.string.error_area_already_readable
+    OperationError.NoAreaActivity -> R.string.error_no_area_activity
+    OperationError.InvalidGrantDuration -> R.string.error_invalid_grant_duration
+    OperationError.GrantNotActive -> R.string.error_grant_not_active
+    OperationError.SameProfessional -> R.string.error_same_professional
+    OperationError.AssignmentChanged -> R.string.error_assignment_changed
 }
 
 @StringRes

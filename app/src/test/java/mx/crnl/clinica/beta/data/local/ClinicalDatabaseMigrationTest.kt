@@ -9,6 +9,7 @@ import java.io.File
 import kotlinx.coroutines.runBlocking
 import mx.crnl.clinica.beta.core.database.ClinicalDatabase
 import mx.crnl.clinica.beta.core.database.MIGRATION_1_2
+import mx.crnl.clinica.beta.core.database.MIGRATION_2_3
 import mx.crnl.clinica.beta.core.demo.AssetSeedFileReader
 import mx.crnl.clinica.beta.core.demo.DemoDataInitializer
 import mx.crnl.clinica.beta.core.demo.DemoSeedLoader
@@ -45,8 +46,11 @@ class ClinicalDatabaseMigrationTest {
         context.deleteDatabase(ClinicalDatabase.FILE_NAME)
     }
 
-    private fun createPhaseOneDatabase(name: String) {
-        val schemaFile = File("schemas/${ClinicalDatabase::class.java.canonicalName}/1.json")
+    private fun createPhaseOneDatabase(name: String) = createDatabaseFromSchema(name, schemaVersion = 1) { insertPhaseOneData() }
+
+    /** Crea una base vacía con el esquema exportado de [schemaVersion], con las mismas sentencias que Room genera. */
+    private fun createDatabaseFromSchema(name: String, schemaVersion: Int, insertData: SQLiteDatabase.() -> Unit = {}) {
+        val schemaFile = File("schemas/${ClinicalDatabase::class.java.canonicalName}/$schemaVersion.json")
         val schema = JSONObject(schemaFile.readText(Charsets.UTF_8)).getJSONObject("database")
         fun String.resolved(table: String) = replace("\${TABLE_NAME}", table)
 
@@ -64,8 +68,8 @@ class ClinicalDatabaseMigrationTest {
             }
             val setup = schema.getJSONArray("setupQueries")
             for (index in 0 until setup.length()) db.execSQL(setup.getString(index))
-            db.version = 1
-            db.insertPhaseOneData()
+            db.version = schemaVersion
+            db.insertData()
         }
     }
 
@@ -103,7 +107,7 @@ class ClinicalDatabaseMigrationTest {
 
     private fun openMigrated(name: String): ClinicalDatabase =
         Room.databaseBuilder(context, ClinicalDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
             .also {
@@ -181,7 +185,7 @@ class ClinicalDatabaseMigrationTest {
 
         assertEquals(2, db.scalar("SELECT COUNT(*) FROM demo_users WHERE professionalLicense IS NULL"))
         assertEquals(0, db.scalar("SELECT COUNT(*) FROM demo_credentials"))
-        assertEquals(2, db.openHelper.writableDatabase.version)
+        assertEquals(3, db.openHelper.writableDatabase.version)
     }
 
     @Test
@@ -250,6 +254,116 @@ class ClinicalDatabaseMigrationTest {
         )
         assertTrue(runBlocking { auth.signIn(BetaAccounts.PSYCHOLOGIST_EMAIL, BetaAccounts.PASSWORD) } is SignInResult.Success)
         assertNotNull(runBlocking { db.patientDao().getById("b0000000-0000-4000-8000-000000000001") })
+    }
+
+
+    // ---------------------------------------------------------------- v2 -> v3
+
+    private fun createPhaseThreeDatabase(name: String) = createDatabaseFromSchema(name, schemaVersion = 2) {
+        execSQL(
+            "INSERT INTO demo_users VALUES ('${BetaAccounts.PSYCHOLOGIST_ID}', 'Mariana', 'Elizondo', 'Cantú', " +
+                "'${BetaAccounts.PSYCHOLOGIST_EMAIL}', 'PROFESSIONAL', 'PSYCHOLOGY', 'ACTIVE', 1000, 1000, '00000103')",
+        )
+        execSQL(
+            "INSERT INTO demo_users VALUES ('${BetaAccounts.ADMIN_ID}', 'Héctor', 'Montemayor', 'Salazar', " +
+                "'${BetaAccounts.ADMIN_EMAIL}', 'CLINICAL_ADMIN', NULL, 'ACTIVE', 1000, 1000, NULL)",
+        )
+        execSQL(
+            "INSERT INTO patients VALUES ('b0000000-0000-4000-8000-000000000001', 'CRNL-000001', 'Ana Lucía', 'Cavazos', 'Ibarra', " +
+                "'1998-05-14', 'Monterrey, Nuevo León', 'FEMALE', 'Monterrey', 'STUDENT', 'ACTIVE', 2000, '${BetaAccounts.PSYCHOLOGIST_ID}', " +
+                "2000, '${BetaAccounts.PSYCHOLOGIST_ID}')",
+        )
+        execSQL(
+            "INSERT INTO professional_assignments VALUES ('d0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', " +
+                "'PSYCHOLOGY', '${BetaAccounts.PSYCHOLOGIST_ID}', 3000, NULL, 'ACTIVE', 'Asignación inicial', '${BetaAccounts.ADMIN_ID}', 3000)",
+        )
+        execSQL(
+            "INSERT INTO interarea_access_requests VALUES ('r1', 'b0000000-0000-4000-8000-000000000001', '${BetaAccounts.PSYCHOLOGIST_ID}', " +
+                "'PSYCHOLOGY', 'NUTRITION', 'motivo', 'READ', 4000, 'PENDING', NULL, NULL, NULL)",
+        )
+        execSQL(
+            "INSERT INTO audit_entries VALUES ('audit-v2', NULL, 'DEMO_SEED_APPLIED', 'DEMO_SEED', 'v2', NULL, NULL, 5000, 'SUCCESS', NULL)",
+        )
+    }
+
+    private fun openPhaseThreeMigrated(name: String): ClinicalDatabase =
+        Room.databaseBuilder(context, ClinicalDatabase::class.java, name)
+            .addMigrations(MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+            .also {
+                opened = it
+                it.openHelper.writableDatabase // fuerza la migración y la validación del esquema contra la versión 3
+            }
+
+    @Test
+    fun `la migracion de la version 2 a la 3 conserva los datos y agrega las tablas nuevas vacias`() {
+        createPhaseThreeDatabase(MIGRATED)
+
+        val db = openPhaseThreeMigrated(MIGRATED)
+
+        assertEquals(3, db.openHelper.writableDatabase.version)
+        assertEquals(2, db.scalar("SELECT COUNT(*) FROM demo_users"))
+        assertEquals(1, db.scalar("SELECT COUNT(*) FROM patients"))
+        assertEquals(1, db.scalar("SELECT COUNT(*) FROM professional_assignments"))
+        assertEquals(1, db.scalar("SELECT COUNT(*) FROM interarea_access_requests"))
+        assertEquals(1, db.scalar("SELECT COUNT(*) FROM audit_entries"))
+        assertEquals(0, db.scalar("SELECT COUNT(*) FROM access_grants"))
+        assertEquals(0, db.scalar("SELECT COUNT(*) FROM professional_override_requests"))
+        db.openHelper.writableDatabase.query("SELECT professionalLicense FROM demo_users WHERE userId = '${BetaAccounts.PSYCHOLOGIST_ID}'").use {
+            it.moveToFirst()
+            assertEquals("00000103", it.getString(0))
+        }
+    }
+
+    @Test
+    fun `tras la migracion 2 a 3 la base pasa la integridad y las tablas nuevas restringen los borrados`() {
+        createPhaseThreeDatabase(MIGRATED)
+        val sql = openPhaseThreeMigrated(MIGRATED).openHelper.writableDatabase
+        val grant = "INSERT INTO access_grants VALUES ('%s', 'r1', 'b0000000-0000-4000-8000-000000000001', '${BetaAccounts.PSYCHOLOGIST_ID}', " +
+            "'NUTRITION', 'READ', 4000, 9000, 'ACTIVE', '${BetaAccounts.ADMIN_ID}', 4000, NULL, NULL)"
+        sql.execSQL(grant.format("g1"))
+        sql.execSQL(
+            "INSERT INTO professional_override_requests VALUES ('o1', 'b0000000-0000-4000-8000-000000000001', 'PSYCHOLOGY', " +
+                "'d0000000-0000-4000-8000-000000000001', '${BetaAccounts.PSYCHOLOGIST_ID}', '${BetaAccounts.ADMIN_ID}', " +
+                "'${BetaAccounts.PSYCHOLOGIST_ID}', 'motivo', 5000, 'PENDING', NULL, NULL, NULL)",
+        )
+
+        sql.query("PRAGMA foreign_key_check").use { assertEquals("hay violaciones de claves foráneas", 0, it.count) }
+        sql.query("PRAGMA integrity_check").use {
+            it.moveToFirst()
+            assertEquals("ok", it.getString(0))
+        }
+        assertTrue("una solicitud produce a lo sumo una concesión", runCatching { sql.execSQL(grant.format("g2")) }.isFailure)
+        assertTrue("no se borra una solicitud con concesión", runCatching { sql.execSQL("DELETE FROM interarea_access_requests WHERE accessRequestId = 'r1'") }.isFailure)
+        assertTrue("no se borra una asignación citada por una solicitud de cambio", runCatching { sql.execSQL("DELETE FROM professional_assignments") }.isFailure)
+        assertTrue("no se borra un paciente con concesión", runCatching { sql.execSQL("DELETE FROM patients") }.isFailure)
+    }
+
+    @Test
+    fun `el esquema exportado de la version 3 declara las dos tablas nuevas con sus indices y claves`() {
+        val schema = JSONObject(File("schemas/${ClinicalDatabase::class.java.canonicalName}/3.json").readText(Charsets.UTF_8)).getJSONObject("database")
+        assertEquals(3, schema.getInt("version"))
+        val entities = schema.getJSONArray("entities")
+        val tables = (0 until entities.length()).associate { entities.getJSONObject(it).getString("tableName") to entities.getJSONObject(it) }
+
+        val grants = requireNotNull(tables["access_grants"])
+        val overrides = requireNotNull(tables["professional_override_requests"])
+        assertEquals(7, grants.getJSONArray("indices").length())
+        assertEquals(7, overrides.getJSONArray("indices").length())
+        assertEquals(5, grants.getJSONArray("foreignKeys").length())
+        assertEquals(6, overrides.getJSONArray("foreignKeys").length())
+    }
+
+    @Test
+    fun `una instalacion de la Fase 3 se actualiza en sitio sin perder datos`() {
+        createPhaseThreeDatabase(ClinicalDatabase.FILE_NAME)
+
+        val db = ClinicalDatabase.create(context).also { opened = it }
+
+        assertEquals(1, db.scalar("SELECT COUNT(*) FROM patients"))
+        assertEquals(0, db.openHelper.writableDatabase.query("PRAGMA foreign_key_check").use { it.count })
+        assertEquals(3, db.openHelper.writableDatabase.version)
     }
 
     private companion object {

@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 class ClinicalDatabaseTest : DatabaseTest() {
 
     @Test
-    fun `crea todas las tablas del esquema v2`() {
+    fun `crea todas las tablas del esquema v3`() {
         val tables = db.query(
             "SELECT name FROM sqlite_master WHERE type = 'table' " +
                 "AND name NOT LIKE 'android_%' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%'",
@@ -37,6 +37,8 @@ class ClinicalDatabaseTest : DatabaseTest() {
                 "assessments",
                 "assessment_results",
                 "interarea_access_requests",
+                "access_grants",
+                "professional_override_requests",
                 "audit_entries",
             ),
             tables,

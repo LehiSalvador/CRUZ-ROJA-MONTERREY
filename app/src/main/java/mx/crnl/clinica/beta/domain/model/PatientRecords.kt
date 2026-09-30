@@ -66,17 +66,6 @@ data class EncounterSummary(
 /** Lo único que otra área deja ver: que hay atención registrada, cuántos encuentros y cuándo fue el último. */
 data class AreaActivity(val area: ClinicalArea, val encounterCount: Int, val lastActivityAt: Instant?)
 
-/** `classificationLabel` es nulo mientras el resultado no tenga una clasificación definida. */
-data class AssessmentSummary(
-    val assessmentId: String,
-    val area: ClinicalArea?,
-    val professionalName: String,
-    val status: AssessmentStatus,
-    val startedAt: Instant,
-    val hasResult: Boolean,
-    val classificationLabel: String?,
-)
-
 /**
  * Expediente de un paciente tal como lo puede ver quien lo consulta: los datos generales son para todos; lo
  * clínico (asignaciones, citas, encuentros, evaluaciones) solo llega de las [viewableAreas]. De las demás áreas
@@ -94,6 +83,12 @@ data class PatientDetail(
     val assignmentHistory: List<PatientAssignment>,
     val viewableAreas: Set<ClinicalArea>,
     val restrictedAreas: List<AreaActivity>,
+    /** Áreas legibles solo por un acceso temporal de lectura, con el momento en que vence. Siempre ⊆ [viewableAreas]. */
+    val grantedAreas: Map<ClinicalArea, Instant> = emptyMap(),
+    /** Solicitudes de acceso propias todavía sin resolver: área → solicitud. */
+    val pendingAccessRequests: Map<ClinicalArea, String> = emptyMap(),
+    /** Solicitudes de cambio de profesional sin resolver de las áreas visibles: área → solicitud. */
+    val pendingChangeRequests: Map<ClinicalArea, String> = emptyMap(),
 ) {
     fun nextAppointment(now: Instant): AppointmentSummary? =
         appointments

@@ -8,12 +8,18 @@ import mx.crnl.clinica.beta.core.demo.DemoSeedLoader
 import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.repository.AuditRecorder
+import mx.crnl.clinica.beta.data.repository.LocalAccessRequestRepository
+import mx.crnl.clinica.beta.data.repository.LocalAccountAdministrationRepository
 import mx.crnl.clinica.beta.data.repository.LocalAppointmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAssessmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalAuditRepository
 import mx.crnl.clinica.beta.data.repository.LocalAuthRepository
+import mx.crnl.clinica.beta.data.repository.LocalBetaMaintenanceRepository
 import mx.crnl.clinica.beta.data.repository.LocalEncounterRepository
 import mx.crnl.clinica.beta.data.repository.LocalHomeRepository
 import mx.crnl.clinica.beta.data.repository.LocalPatientRepository
 import mx.crnl.clinica.beta.data.repository.LocalProfessionalAssignmentRepository
+import mx.crnl.clinica.beta.data.repository.LocalProfessionalChangeRepository
 import mx.crnl.clinica.beta.domain.model.UserAccount
 import org.junit.Before
 
@@ -35,6 +41,12 @@ abstract class RepositoryTest : DatabaseTest() {
     protected lateinit var encounters: LocalEncounterRepository
     protected lateinit var auth: LocalAuthRepository
     protected lateinit var home: LocalHomeRepository
+    protected lateinit var accounts: LocalAccountAdministrationRepository
+    protected lateinit var accessRequests: LocalAccessRequestRepository
+    protected lateinit var changeRequests: LocalProfessionalChangeRepository
+    protected lateinit var assessmentRepo: LocalAssessmentRepository
+    protected lateinit var auditRepo: LocalAuditRepository
+    protected lateinit var maintenance: LocalBetaMaintenanceRepository
 
     @Before
     fun seedAndAssemble() {
@@ -53,6 +65,17 @@ abstract class RepositoryTest : DatabaseTest() {
         encounters = LocalEncounterRepository(db, audit, clock, newId)
         auth = LocalAuthRepository(db, session, hasher, audit, clock, newId)
         home = LocalHomeRepository(db, clock)
+        accounts = LocalAccountAdministrationRepository(db, audit, clock)
+        accessRequests = LocalAccessRequestRepository(db, audit, clock, newId)
+        changeRequests = LocalProfessionalChangeRepository(db, audit, clock, newId)
+        assessmentRepo = LocalAssessmentRepository(db, audit, clock)
+        auditRepo = LocalAuditRepository(db, clock)
+        maintenance = LocalBetaMaintenanceRepository(
+            db,
+            session,
+            DemoDataInitializer(db.seedDao(), session, DemoSeedLoader(AssetSeedFileReader(context.assets)), clock),
+            audit,
+        )
     }
 
     /** La cuenta tal como está hoy en la base, como la vería quien inició sesión. */

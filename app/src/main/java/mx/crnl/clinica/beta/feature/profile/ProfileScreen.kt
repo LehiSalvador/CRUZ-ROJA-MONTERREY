@@ -37,16 +37,19 @@ import mx.crnl.clinica.beta.core.ui.label.labelRes
 import mx.crnl.clinica.beta.core.ui.label.tone
 import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
+import mx.crnl.clinica.beta.domain.access.BetaAdminAccessPolicy
+import mx.crnl.clinica.beta.domain.access.BetaUserAdministrationPolicy
 import mx.crnl.clinica.beta.domain.model.UserAccount
 
 @Composable
-fun ProfileRoute(factory: ViewModelProvider.Factory) {
+fun ProfileRoute(factory: ViewModelProvider.Factory, actions: ProfileActions) {
     val viewModel: ProfileViewModel = viewModel(factory = factory)
     val state by viewModel.state.collectAsStateWithLifecycle()
     ProfileScreen(
         state = state,
         versionName = BuildConfig.VERSION_NAME,
         versionCode = BuildConfig.VERSION_CODE,
+        actions = actions,
         onSignOut = viewModel::onSignOut,
     )
 }
@@ -56,6 +59,7 @@ fun ProfileScreen(
     state: ProfileUiState,
     versionName: String,
     versionCode: Int,
+    actions: ProfileActions,
     onSignOut: () -> Unit,
 ) {
     Scaffold(topBar = { ClinicalTopBar(title = stringResource(R.string.profile_title)) }) { padding ->
@@ -74,6 +78,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 state.user?.let { AccountCard(it) }
+                state.user?.let { AdministrationCard(it, actions) }
                 ClinicalCard(modifier = Modifier.fillMaxWidth()) {
                     SectionHeader(title = stringResource(R.string.profile_about))
                     Column(
@@ -131,6 +136,44 @@ private fun AccountCard(user: UserAccount) {
             )
             LabeledValue(stringResource(R.string.profile_role), stringResource(user.role.labelRes()))
             user.professionalLicense?.let { LabeledValue(stringResource(R.string.profile_license), it) }
+        }
+    }
+}
+
+/** Destinos de administración que el perfil pide a la navegación; cada uno solo se ofrece a quien la política se lo permite. */
+class ProfileActions(
+    val onOpenUsers: () -> Unit,
+    val onOpenAudit: () -> Unit,
+    val onOpenTools: () -> Unit,
+)
+
+@Composable
+private fun AdministrationCard(user: UserAccount, actions: ProfileActions) {
+    if (!BetaAdminAccessPolicy.hasAdministration(user)) return
+    ClinicalCard(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(title = stringResource(R.string.profile_admin_section))
+        Column(modifier = Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            if (BetaUserAdministrationPolicy.canViewUserDirectory(user)) {
+                SecondaryButton(
+                    text = stringResource(R.string.profile_admin_users),
+                    onClick = actions.onOpenUsers,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (BetaAdminAccessPolicy.canViewAudit(user)) {
+                SecondaryButton(
+                    text = stringResource(R.string.profile_admin_audit),
+                    onClick = actions.onOpenAudit,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (BetaAdminAccessPolicy.canResetBetaData(user)) {
+                SecondaryButton(
+                    text = stringResource(R.string.profile_admin_tools),
+                    onClick = actions.onOpenTools,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

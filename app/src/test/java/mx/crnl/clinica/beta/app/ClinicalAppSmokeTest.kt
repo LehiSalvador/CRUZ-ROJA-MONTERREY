@@ -120,7 +120,7 @@ class ClinicalAppSmokeTest {
         composeRule.onNodeWithText("Luis Mireles Cortés").assertIsDisplayed()
 
         openTab("Solicitudes")
-        composeRule.waitForText("Sin solicitudes")
+        composeRule.waitForText("Sin solicitudes de acceso")
 
         openTab("Perfil")
         composeRule.waitForText("Acerca de")
@@ -271,7 +271,7 @@ class ClinicalAppSmokeTest {
     }
 
     @Test
-    fun `al desplazar el expediente la barra superior sigue diciendo de quien es`() {
+    fun `al desplazar el expediente la barra superior suma el folio sin cortar el titulo`() {
         launchApp()
         signInAndWaitForHome()
         openTab("Pacientes")
@@ -279,9 +279,10 @@ class ClinicalAppSmokeTest {
         composeRule.waitForText("Expediente")
         assertFalse("con el encabezado a la vista la barra solo dice Expediente", composeRule.hasTextNow("CRNL-000001"))
 
-        composeRule.onNodeWithText("Evaluaciones").performScrollTo()
+        composeRule.onNodeWithText("Atención reciente").performScrollTo()
+        // La barra conserva su título corto y suma el folio: el nombre largo vive en el encabezado y no compite con la acción de editar.
         composeRule.waitForText("CRNL-000001")
-        composeRule.waitForTextGone("Expediente")
+        assertTrue(composeRule.hasTextNow("Expediente"))
     }
 
     @Test
@@ -384,7 +385,7 @@ class ClinicalAppSmokeTest {
 
     @Test
     fun `los indicadores de Inicio salen del resumen y no estan escritos en la pantalla`() {
-        home.summary.value = emptyHomeSummary().copy(patientCount = 12, upcomingAppointmentCount = 7, pendingRequestCount = 4)
+        home.summary.value = emptyHomeSummary().copy(patientCount = 12, upcomingAppointmentCount = 7, pendingRequestCount = 4, pendingAccessCount = 3, pendingChangeCount = 1)
         launchApp()
         signInAndWaitForHome()
 

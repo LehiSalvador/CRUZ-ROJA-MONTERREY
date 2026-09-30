@@ -188,6 +188,7 @@ class LocalHomeRepositoryTest : RepositoryTest() {
         assertEquals(1, summaryFor(mariana).pendingRequestCount)
         assertEquals(0, summaryFor(rodrigo).pendingRequestCount)
         assertEquals(0, summaryFor(coordinator).pendingRequestCount)
-        assertEquals(1, summaryFor(admin).pendingRequestCount)
+        // Administración clínica cuenta la solicitud de acceso y la cuenta ficticia pendiente de aprobación (Valeria).
+        assertEquals(2, summaryFor(admin).pendingRequestCount)
     }
 }

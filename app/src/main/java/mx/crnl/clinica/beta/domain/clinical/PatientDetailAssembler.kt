@@ -1,6 +1,7 @@
 package mx.crnl.clinica.beta.domain.clinical
 
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.model.AccessGrant
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 import mx.crnl.clinica.beta.domain.model.AreaActivity
 import mx.crnl.clinica.beta.domain.model.AssessmentSummary
@@ -15,7 +16,8 @@ import mx.crnl.clinica.beta.domain.model.UserAccount
 
 /**
  * Arma el expediente que una persona puede ver a partir de todo lo registrado. El filtrado por área ocurre aquí, en
- * el dominio, para que ninguna pantalla pueda mostrar de más: de las áreas ajenas solo sale [AreaActivity].
+ * el dominio, para que ninguna pantalla pueda mostrar de más: de las áreas ajenas solo sale [AreaActivity], salvo las
+ * que un acceso temporal de lectura vigente ([grants], ya filtradas por vigencia) abre en modo lectura.
  */
 object PatientDetailAssembler {
     fun assemble(
@@ -26,8 +28,13 @@ object PatientDetailAssembler {
         appointments: List<AppointmentSummary>,
         encounters: List<EncounterSummary>,
         assessments: List<AssessmentSummary>,
+        grants: Map<ClinicalArea, AccessGrant> = emptyMap(),
+        pendingAccessRequests: Map<ClinicalArea, String> = emptyMap(),
+        pendingChangeRequests: Map<ClinicalArea, String> = emptyMap(),
     ): PatientDetail {
-        val viewable = BetaClinicalAccessPolicy.viewableAreas(viewer)
+        val byRole = BetaClinicalAccessPolicy.viewableAreas(viewer)
+        val granted = grants.filterKeys { it !in byRole }
+        val viewable = byRole + granted.keys
         val seesEverything = viewable.containsAll(ClinicalArea.entries)
 
         val visibleAssignments = assignments.filter { it.area in viewable }
@@ -42,6 +49,9 @@ object PatientDetailAssembler {
             assignmentHistory = visibleAssignments.sortedWith(compareByDescending<PatientAssignment> { it.since }.thenBy { it.area }),
             viewableAreas = viewable,
             restrictedAreas = restricted(viewable, assignments, encounters),
+            grantedAreas = granted.mapValues { it.value.expiresAt },
+            pendingAccessRequests = pendingAccessRequests.filterKeys { it !in viewable },
+            pendingChangeRequests = pendingChangeRequests.filterKeys { it in viewable },
         )
     }
 

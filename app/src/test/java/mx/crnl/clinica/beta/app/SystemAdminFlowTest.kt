@@ -93,4 +93,69 @@ class SystemAdminFlowTest {
         composeRule.waitForText("El paciente cuenta con atención registrada en esta área.")
         assertFalse(composeRule.hasTextNow("Historial de atención"))
     }
+
+    @Test
+    fun `su Inicio es administrativo y no ofrece pacientes ni citas`() {
+        composeRule.waitForText("Hola, Sistema")
+        composeRule.waitForText("Cuentas por revisar")
+        composeRule.waitForText("Ir a administración")
+
+        assertFalse(composeRule.hasTextNow("Nuevo paciente"))
+        assertFalse(composeRule.hasTextNow("Buscar paciente"))
+        assertFalse(composeRule.hasTextNow("Pacientes recientes"))
+        assertFalse(composeRule.hasTextNow("Próximas citas"))
+    }
+
+    @Test
+    fun `en Solicitudes solo ve cuentas y solo en lectura`() {
+        composeRule.waitForText("Hola, Sistema")
+        composeRule.tap("Solicitudes")
+        composeRule.waitForText("Valeria Ramos Cisneros")
+        assertFalse(composeRule.hasTextNow("Acceso interárea"))
+        assertFalse(composeRule.hasTextNow("Cambio de profesional"))
+
+        composeRule.tap("Valeria Ramos Cisneros")
+        composeRule.waitForText("Puedes consultar esta cuenta, pero tu perfil no puede cambiar su estado.")
+        assertFalse(composeRule.hasTextNow("Aprobar cuenta"))
+        assertFalse(composeRule.hasTextNow("Rechazar solicitud"))
+    }
+
+    @Test
+    fun `consulta usuarios y auditoria pero no restablece los datos`() {
+        composeRule.waitForText("Hola, Sistema")
+        composeRule.tap("Perfil")
+        composeRule.waitForText("Administración")
+        composeRule.waitForText("Usuarios")
+        composeRule.waitForText("Auditoría")
+        assertFalse(composeRule.hasTextNow("Herramientas de Beta"))
+
+        composeRule.tap("Usuarios")
+        composeRule.waitForText("Pendientes (1)")
+        composeRule.tap("Activos (7)")
+        composeRule.tap("Paola Garza Leal")
+        composeRule.waitForText("Puedes consultar esta cuenta, pero tu perfil no puede cambiar su estado.")
+        assertFalse(composeRule.hasTextNow("Suspender cuenta"))
+    }
+
+    @Test
+    fun `la bitacora no incluye contenido clinico de pacientes`() {
+        composeRule.waitForText("Hola, Sistema")
+        composeRule.tap("Perfil")
+        composeRule.tap("Auditoría")
+        composeRule.waitForText("Otra acción")
+        assertFalse(composeRule.hasTextNow("Fernanda Guerra Domínguez"))
+        assertFalse(composeRule.hasTextNow("CRNL-000003"))
+    }
+
+    @Test
+    fun `no puede pedir acceso de lectura a ningun area`() {
+        composeRule.waitForText("Hola, Sistema")
+        composeRule.tap("Pacientes")
+        composeRule.waitForText("Fernanda Guerra Domínguez")
+        composeRule.tap("Fernanda Guerra Domínguez")
+        composeRule.waitForText("Expediente")
+        composeRule.waitForText("Atención por área")
+
+        assertFalse(composeRule.hasTextNow("Solicitar acceso de lectura"))
+    }
 }

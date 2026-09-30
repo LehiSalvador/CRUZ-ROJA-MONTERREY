@@ -88,6 +88,9 @@ interface EncounterDao {
         appointmentId: String?,
     ): Int
 
+    @Query("SELECT COUNT(*) FROM clinical_encounters WHERE patientId = :patientId AND areaCode = :areaCode")
+    suspend fun countForArea(patientId: String, areaCode: String): Int
+
     @Insert
     suspend fun insert(encounter: ClinicalEncounterEntity)
 }

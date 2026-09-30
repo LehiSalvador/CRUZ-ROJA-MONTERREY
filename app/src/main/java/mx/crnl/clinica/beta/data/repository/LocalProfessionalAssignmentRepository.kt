@@ -5,7 +5,7 @@ import java.text.Collator
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import mx.crnl.clinica.beta.core.database.ClinicalDatabase
 import mx.crnl.clinica.beta.core.util.ClinicTime
@@ -14,9 +14,11 @@ import mx.crnl.clinica.beta.data.local.entity.ProfessionalAssignmentEntity
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.local.mapper.toProfessionalOption
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.access.InterareaAccessPolicy
 import mx.crnl.clinica.beta.domain.common.EntityKind
 import mx.crnl.clinica.beta.domain.common.OperationError
 import mx.crnl.clinica.beta.domain.common.OperationResult
+import mx.crnl.clinica.beta.domain.model.AccessGrant
 import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.AssignmentStatus
 import mx.crnl.clinica.beta.domain.model.AuditAction
@@ -38,29 +40,31 @@ class LocalProfessionalAssignmentRepository(
     private val assignmentDao = database.assignmentDao()
     private val patientDao = database.patientDao()
     private val userDao = database.userDao()
+    private val grants = EffectiveGrantSource(database.accessGrantDao(), clock)
 
-    override fun observeActiveAssignments(patientId: String, viewer: UserAccount): Flow<List<PatientAssignment>> {
-        val viewable = BetaClinicalAccessPolicy.viewableAreas(viewer)
-        return assignmentDao.observeRows(patientId)
-            .map { rows ->
-                rows.map { it.toDomain() }
-                    .filter { it.status == AssignmentStatus.ACTIVE && it.area in viewable }
-                    .sortedBy { it.area }
-            }
-            .flowOn(Dispatchers.Default)
-    }
+    // Leer un área es por rol o por una concesión de lectura vigente sobre ese paciente; asignar nunca depende de ella.
+    override fun observeActiveAssignments(patientId: String, viewer: UserAccount): Flow<List<PatientAssignment>> =
+        combine(assignmentDao.observeRows(patientId), grants.observe(viewer)) { rows, active ->
+            val viewable = readableAreas(viewer, active, patientId)
+            rows.map { it.toDomain() }
+                .filter { it.status == AssignmentStatus.ACTIVE && it.area in viewable }
+                .sortedBy { it.area }
+        }.flowOn(Dispatchers.Default)
 
-    override fun observeHistory(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<PatientAssignment>> {
-        val allowed = BetaClinicalAccessPolicy.canViewAreaDetail(viewer, area)
-        return assignmentDao.observeRows(patientId)
-            .map { rows -> if (allowed) rows.map { it.toDomain() }.filter { it.area == area } else emptyList() }
-            .flowOn(Dispatchers.Default)
-    }
+    override fun observeHistory(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<PatientAssignment>> =
+        combine(assignmentDao.observeRows(patientId), grants.observe(viewer)) { rows, active ->
+            if (area in readableAreas(viewer, active, patientId)) rows.map { it.toDomain() }.filter { it.area == area } else emptyList()
+        }.flowOn(Dispatchers.Default)
 
     override suspend fun getActiveAssignment(patientId: String, area: ClinicalArea, viewer: UserAccount): PatientAssignment? {
-        if (!BetaClinicalAccessPolicy.canViewAreaDetail(viewer, area)) return null
+        val readable = BetaClinicalAccessPolicy.viewableAreas(viewer) + grants.readableAreas(viewer, patientId)
+        if (area !in readable) return null
         return assignmentDao.getActiveRow(patientId, area.name)?.toDomain()
     }
+
+    private fun readableAreas(viewer: UserAccount, active: List<AccessGrant>, patientId: String): Set<ClinicalArea> =
+        BetaClinicalAccessPolicy.viewableAreas(viewer) +
+            InterareaAccessPolicy.readableAreas(viewer, active, patientId, clock.instant()).keys
 
     override suspend fun listAssignableProfessionals(area: ClinicalArea, viewer: UserAccount): List<ProfessionalOption> {
         if (!BetaClinicalAccessPolicy.canCreateAssignment(viewer, area)) return emptyList()

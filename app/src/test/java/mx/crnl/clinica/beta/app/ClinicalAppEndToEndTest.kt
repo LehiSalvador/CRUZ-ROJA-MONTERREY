@@ -24,6 +24,7 @@ import mx.crnl.clinica.beta.testing.fixedClock
 import mx.crnl.clinica.beta.testing.hasTextNow
 import mx.crnl.clinica.beta.testing.scrollListTo
 import mx.crnl.clinica.beta.testing.tap
+import mx.crnl.clinica.beta.testing.tapDescription
 import mx.crnl.clinica.beta.testing.typeInto
 import mx.crnl.clinica.beta.testing.waitForText
 import mx.crnl.clinica.beta.testing.waitForTextGone
@@ -164,7 +165,7 @@ class ClinicalAppEndToEndTest {
         assertEquals(9, scalar("SELECT COUNT(*) FROM patients"))
 
         // Edición y persistencia.
-        composeRule.tap("Editar")
+        composeRule.tapDescription("Editar")
         composeRule.waitForText("Editar paciente")
         composeRule.typeInto("Municipio (opcional)", "Guadalupe")
         composeRule.tap("Guardar cambios")
@@ -247,7 +248,7 @@ class ClinicalAppEndToEndTest {
         openTab("Pacientes")
         composeRule.tap("Ana Lucía Cavazos Ibarra")
         composeRule.waitForText("Expediente")
-        composeRule.tap("Editar")
+        composeRule.tapDescription("Editar")
         composeRule.waitForText("Editar paciente")
 
         composeRule.typeInto("Correo electrónico (opcional)", "luis.mireles@example.org")

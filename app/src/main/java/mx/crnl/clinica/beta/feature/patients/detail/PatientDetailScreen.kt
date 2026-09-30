@@ -20,12 +20,12 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -43,6 +43,7 @@ import mx.crnl.clinica.beta.R
 import mx.crnl.clinica.beta.core.ui.component.ClinicalCard
 import mx.crnl.clinica.beta.core.ui.component.ClinicalTopBar
 import mx.crnl.clinica.beta.core.ui.component.EmptyState
+import mx.crnl.clinica.beta.core.ui.component.InfoBanner
 import mx.crnl.clinica.beta.core.ui.component.LabeledValue
 import mx.crnl.clinica.beta.core.ui.component.PrimaryButton
 import mx.crnl.clinica.beta.core.ui.component.SecondaryButton
@@ -57,7 +58,6 @@ import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
 import mx.crnl.clinica.beta.core.util.DateTimeFormats
 import mx.crnl.clinica.beta.domain.model.AreaActivity
-import mx.crnl.clinica.beta.domain.model.AssessmentSummary
 import mx.crnl.clinica.beta.domain.model.AssignmentStatus
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.ContactType
@@ -66,6 +66,7 @@ import mx.crnl.clinica.beta.domain.model.OPEN_APPOINTMENT_STATUSES
 import mx.crnl.clinica.beta.domain.model.PatientAssignment
 import mx.crnl.clinica.beta.domain.model.PatientDetail
 import mx.crnl.clinica.beta.feature.appointments.AppointmentCard
+import mx.crnl.clinica.beta.feature.assessments.AssessmentsSection
 
 /** Secciones del expediente. «Resumen» reúne todo; cada área muestra su historial longitudinal si la persona puede verlo. */
 private enum class DetailTab(@StringRes val labelRes: Int, val area: ClinicalArea? = null) {
@@ -74,7 +75,6 @@ private enum class DetailTab(@StringRes val labelRes: Int, val area: ClinicalAre
     NUTRITION(R.string.area_nutrition, ClinicalArea.NUTRITION),
     GENERAL_MEDICINE(R.string.area_general_medicine, ClinicalArea.GENERAL_MEDICINE),
     APPOINTMENTS(R.string.detail_tab_appointments),
-    DOCUMENTS(R.string.detail_tab_documents),
 }
 
 private const val SUMMARY_ITEM_LIMIT = 3
@@ -89,6 +89,11 @@ class PatientDetailActions(
     val onRegisterEncounter: (patientId: String, area: ClinicalArea) -> Unit,
     val onOpenAppointment: (appointmentId: String) -> Unit,
     val onOpenEncounter: (encounterId: String) -> Unit,
+    val onRequestAccess: (patientId: String, area: ClinicalArea) -> Unit,
+    val onOpenAccessRequest: (requestId: String) -> Unit,
+    val onRequestProfessionalChange: (patientId: String, area: ClinicalArea) -> Unit,
+    val onOpenChangeRequest: (requestId: String) -> Unit,
+    val onOpenAssessment: (assessmentId: String) -> Unit,
 )
 
 @Composable
@@ -119,15 +124,16 @@ fun PatientDetailScreen(
     val identityInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     Scaffold(
         topBar = {
+            // La barra lleva solo el título corto y, al desplazarse, el folio: el nombre completo (largo) vive en el encabezado
+            // y en una barra angosta con fuente grande se cortaría o taparía la acción de editar.
             ClinicalTopBar(
-                title = if (identityInBar && patient != null) patient.fullName else stringResource(R.string.detail_title),
+                title = stringResource(R.string.detail_title),
                 subtitle = if (identityInBar && patient != null) patient.patientNumber else null,
                 onNavigateUp = actions.onNavigateUp,
                 actions = {
                     if (state is UiState.Content) {
-                        TextButton(onClick = { actions.onEdit(state.data.detail.patient.patientId) }) {
-                            Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                            Text(stringResource(R.string.detail_edit))
+                        IconButton(onClick = { actions.onEdit(state.data.detail.patient.patientId) }) {
+                            Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.detail_edit))
                         }
                     }
                 },
@@ -188,12 +194,7 @@ private fun DetailBody(
                 when {
                     tab == DetailTab.SUMMARY -> SummaryTab(content, actions)
                     tab.area != null -> AreaTab(tab.area, content, actions)
-                    tab == DetailTab.APPOINTMENTS -> AppointmentsTab(content, actions)
-                    else -> EmptyState(
-                        icon = Icons.Filled.Info,
-                        title = stringResource(R.string.detail_documents_empty_title),
-                        message = stringResource(R.string.detail_documents_empty_message),
-                    )
+                    else -> AppointmentsTab(content, actions)
                 }
             }
         }
@@ -265,7 +266,7 @@ private fun SummaryTab(content: PatientDetailContent, actions: PatientDetailActi
         if (area in detail.viewableAreas) {
             AreaSummaryCard(area, content, actions)
         } else {
-            RestrictedAreaCard(area, detail.restrictedAreas.firstOrNull { it.area == area })
+            RestrictedAreaCard(area, detail.restrictedAreas.firstOrNull { it.area == area }, content, actions)
         }
     }
 
@@ -305,7 +306,9 @@ private fun SummaryTab(content: PatientDetailContent, actions: PatientDetailActi
     }
 
     EncountersCard(detail.encounters.take(SUMMARY_ITEM_LIMIT), actions, titleRes = R.string.summary_recent_attention)
-    AssessmentsCard(detail.assessments.take(SUMMARY_ITEM_LIMIT))
+    // Las evaluaciones se leen en la sección de su área; solo las que no se pueden atribuir a un área aparecen aquí.
+    val unattributed = detail.assessments.filter { it.area == null }
+    if (unattributed.isNotEmpty()) AssessmentsSection(unattributed, actions.onOpenAssessment)
 }
 
 /** Un área que la persona puede ver: quién atiende, la última atención y, si toca, asignar profesional. */
@@ -352,8 +355,10 @@ private fun AreaSummaryCard(area: ClinicalArea, content: PatientDetailContent, a
 
 /** De un área ajena solo se sabe que hay atención: nunca quién, de qué tipo ni con qué resultado. */
 @Composable
-private fun RestrictedAreaCard(area: ClinicalArea, activity: AreaActivity?) {
-    ClinicalCard(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+private fun RestrictedAreaCard(area: ClinicalArea, activity: AreaActivity?, content: PatientDetailContent, actions: PatientDetailActions) {
+    val detail = content.detail
+    val pendingRequestId = detail.pendingAccessRequests[area]
+    ClinicalCard(modifier = Modifier.fillMaxWidth()) {
         SectionHeader(title = stringResource(area.labelRes()))
         Text(
             text = stringResource(R.string.restricted_area_message),
@@ -375,6 +380,19 @@ private fun RestrictedAreaCard(area: ClinicalArea, activity: AreaActivity?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (pendingRequestId != null) {
+            SecondaryButton(
+                text = stringResource(R.string.access_pending_action),
+                onClick = { actions.onOpenAccessRequest(pendingRequestId) },
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
+            )
+        } else if (content.capabilities(area).canRequestAccess) {
+            SecondaryButton(
+                text = stringResource(R.string.access_request_action),
+                onClick = { actions.onRequestAccess(detail.patient.patientId, area) },
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
+            )
+        }
     }
 }
 
@@ -386,7 +404,7 @@ private fun AreaTab(area: ClinicalArea, content: PatientDetailContent, actions: 
     if (area !in detail.viewableAreas) {
         val activity = detail.restrictedAreas.firstOrNull { it.area == area }
         if (activity != null) {
-            RestrictedAreaCard(area, activity)
+            RestrictedAreaCard(area, activity, content, actions)
         } else {
             EmptyState(
                 icon = Icons.Filled.Info,
@@ -403,7 +421,23 @@ private fun AreaTab(area: ClinicalArea, content: PatientDetailContent, actions: 
     val assessments = detail.assessments.filter { it.area == area }
     val history = detail.assignmentHistory.filter { it.area == area }
 
-    AssignmentCard(area, assignment, capabilities.canAssign, onAssign = { actions.onAssignProfessional(detail.patient.patientId, area) })
+    detail.grantedAreas[area]?.let { expiresAt ->
+        InfoBanner(
+            title = stringResource(R.string.grant_banner_title),
+            text = stringResource(R.string.grant_banner_valid_until, DateTimeFormats.dateTime(expiresAt)),
+        )
+    }
+
+    AssignmentCard(
+        area = area,
+        assignment = assignment,
+        canAssign = capabilities.canAssign,
+        onAssign = { actions.onAssignProfessional(detail.patient.patientId, area) },
+        canRequestChange = capabilities.canRequestProfessionalChange,
+        pendingChangeRequestId = detail.pendingChangeRequests[area],
+        onRequestChange = { actions.onRequestProfessionalChange(detail.patient.patientId, area) },
+        onOpenChangeRequest = actions.onOpenChangeRequest,
+    )
 
     if (capabilities.canSchedule || capabilities.canRegisterEncounter) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -447,12 +481,21 @@ private fun AreaTab(area: ClinicalArea, content: PatientDetailContent, actions: 
 
     EncountersCard(encounters, actions, titleRes = R.string.area_timeline_title, emptyRes = R.string.area_timeline_empty)
 
-    if (assessments.isNotEmpty()) AssessmentsCard(assessments)
+    if (area == ClinicalArea.PSYCHOLOGY || assessments.isNotEmpty()) AssessmentsSection(assessments, actions.onOpenAssessment)
     if (history.size > 1 || history.any { it.status == AssignmentStatus.ENDED }) AssignmentHistoryCard(history)
 }
 
 @Composable
-private fun AssignmentCard(area: ClinicalArea, assignment: PatientAssignment?, canAssign: Boolean, onAssign: () -> Unit) {
+private fun AssignmentCard(
+    area: ClinicalArea,
+    assignment: PatientAssignment?,
+    canAssign: Boolean,
+    onAssign: () -> Unit,
+    canRequestChange: Boolean,
+    pendingChangeRequestId: String?,
+    onRequestChange: () -> Unit,
+    onOpenChangeRequest: (requestId: String) -> Unit,
+) {
     ClinicalCard(modifier = Modifier.fillMaxWidth()) {
         SectionHeader(title = stringResource(R.string.area_professional_label))
         if (assignment == null) {
@@ -474,7 +517,20 @@ private fun AssignmentCard(area: ClinicalArea, assignment: PatientAssignment?, c
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // El cambio de profesional pertenece a un módulo posterior: aquí no hay acción que ofrecer.
+                // El profesional vigente no se edita: cambiarlo es una solicitud formal que otra persona resuelve.
+                if (pendingChangeRequestId != null) {
+                    SecondaryButton(
+                        text = stringResource(R.string.change_pending_action),
+                        onClick = { onOpenChangeRequest(pendingChangeRequestId) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else if (canRequestChange) {
+                    SecondaryButton(
+                        text = stringResource(R.string.change_request_action),
+                        onClick = onRequestChange,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -590,38 +646,5 @@ private fun EncounterRow(encounter: EncounterSummary, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-@Composable
-private fun AssessmentsCard(assessments: List<AssessmentSummary>) {
-    ClinicalCard(modifier = Modifier.fillMaxWidth()) {
-        SectionHeader(title = stringResource(R.string.detail_section_assessments))
-        Column(modifier = Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            if (assessments.isEmpty()) {
-                Text(text = stringResource(R.string.detail_no_assessments), style = MaterialTheme.typography.bodyMedium)
-            }
-            assessments.forEach { assessment ->
-                val heading = listOfNotNull(
-                    stringResource(R.string.assessment_title),
-                    assessment.area?.let { stringResource(it.labelRes()) },
-                ).joinToString(" · ")
-                val result = if (assessment.hasResult) {
-                    stringResource(R.string.assessment_result_recorded) + " · " +
-                        (assessment.classificationLabel ?: stringResource(R.string.assessment_unclassified))
-                } else {
-                    null
-                }
-                LabeledValue(
-                    label = heading,
-                    value = listOfNotNull(
-                        DateTimeFormats.date(assessment.startedAt),
-                        assessment.professionalName,
-                        stringResource(assessment.status.labelRes()),
-                        result,
-                    ).joinToString(" · "),
-                )
-            }
-        }
     }
 }

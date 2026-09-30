@@ -4,19 +4,21 @@ import androidx.room.withTransaction
 import java.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import mx.crnl.clinica.beta.core.database.ClinicalDatabase
 import mx.crnl.clinica.beta.data.local.entity.ClinicalEncounterEntity
 import mx.crnl.clinica.beta.data.local.mapper.personName
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.local.mapper.toSummary
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.access.InterareaAccessPolicy
 import mx.crnl.clinica.beta.domain.clinical.EncounterRules
 import mx.crnl.clinica.beta.domain.common.EntityKind
 import mx.crnl.clinica.beta.domain.common.OperationError
 import mx.crnl.clinica.beta.domain.common.OperationResult
+import mx.crnl.clinica.beta.domain.model.AccessGrant
 import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
 import mx.crnl.clinica.beta.domain.model.AuditAction
@@ -42,22 +44,24 @@ class LocalEncounterRepository(
     private val appointmentDao = database.appointmentDao()
     private val patientDao = database.patientDao()
     private val userDao = database.userDao()
+    private val grants = EffectiveGrantSource(database.accessGrantDao(), clock)
 
-    override fun observeAreaEncounters(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<EncounterSummary>> {
-        val allowed = BetaClinicalAccessPolicy.canViewAreaDetail(viewer, area)
-        return encounterDao.observeAreaRows(patientId, area.name)
-            .map { rows -> if (allowed) rows.map { it.toSummary() } else emptyList() }
-            .flowOn(Dispatchers.Default)
-    }
+    // Leer un área es por rol o por una concesión de lectura vigente sobre ese paciente; escribir nunca depende de ella.
+    override fun observeAreaEncounters(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<EncounterSummary>> =
+        combine(encounterDao.observeAreaRows(patientId, area.name), grants.observe(viewer)) { rows, active ->
+            if (area in readableAreas(viewer, active, patientId)) rows.map { it.toSummary() } else emptyList()
+        }.flowOn(Dispatchers.Default)
 
     override fun observeEncounter(encounterId: String, viewer: UserAccount): Flow<EncounterDetail?> =
-        encounterDao.observeDetailRow(encounterId)
-            .map { row ->
-                row
-                    ?.takeIf { BetaClinicalAccessPolicy.canViewAreaDetail(viewer, ClinicalArea.valueOf(it.areaCode)) }
-                    ?.toDomain()
-            }
-            .flowOn(Dispatchers.Default)
+        combine(encounterDao.observeDetailRow(encounterId), grants.observe(viewer)) { row, active ->
+            row
+                ?.takeIf { ClinicalArea.valueOf(it.areaCode) in readableAreas(viewer, active, it.patientId) }
+                ?.toDomain()
+        }.flowOn(Dispatchers.Default)
+
+    private fun readableAreas(viewer: UserAccount, active: List<AccessGrant>, patientId: String): Set<ClinicalArea> =
+        BetaClinicalAccessPolicy.viewableAreas(viewer) +
+            InterareaAccessPolicy.readableAreas(viewer, active, patientId, clock.instant()).keys
 
     override suspend fun getFormContext(patientId: String, area: ClinicalArea, viewer: UserAccount): EncounterFormContext? {
         if (!BetaClinicalAccessPolicy.canViewAreaDetail(viewer, area)) return null

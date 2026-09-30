@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.map
 import mx.crnl.clinica.beta.app.AppContainer
 import mx.crnl.clinica.beta.core.demo.LocalDataInitializer
 import mx.crnl.clinica.beta.core.demo.SeedOutcome
-import mx.crnl.clinica.beta.domain.account.AccountRequest
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.account.AccountRequest
 import mx.crnl.clinica.beta.domain.account.AccountRequestValidator
 import mx.crnl.clinica.beta.domain.appointment.AppointmentAction
 import mx.crnl.clinica.beta.domain.common.OperationError
@@ -50,15 +50,21 @@ import mx.crnl.clinica.beta.domain.model.UserRole
 import mx.crnl.clinica.beta.domain.patient.DuplicateDetector
 import mx.crnl.clinica.beta.domain.patient.PatientNumber
 import mx.crnl.clinica.beta.domain.patient.PatientSearch
+import mx.crnl.clinica.beta.domain.repository.AccessRequestRepository
+import mx.crnl.clinica.beta.domain.repository.AccountAdministrationRepository
 import mx.crnl.clinica.beta.domain.repository.AccountRequestResult
 import mx.crnl.clinica.beta.domain.repository.AppointmentRepository
+import mx.crnl.clinica.beta.domain.repository.AssessmentRepository
+import mx.crnl.clinica.beta.domain.repository.AuditRepository
 import mx.crnl.clinica.beta.domain.repository.AuthRepository
+import mx.crnl.clinica.beta.domain.repository.BetaMaintenanceRepository
 import mx.crnl.clinica.beta.domain.repository.EncounterRepository
 import mx.crnl.clinica.beta.domain.repository.HomeRepository
 import mx.crnl.clinica.beta.domain.repository.PatientFilter
 import mx.crnl.clinica.beta.domain.repository.PatientNotFoundException
 import mx.crnl.clinica.beta.domain.repository.PatientRepository
 import mx.crnl.clinica.beta.domain.repository.ProfessionalAssignmentRepository
+import mx.crnl.clinica.beta.domain.repository.ProfessionalChangeRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 import mx.crnl.clinica.beta.domain.repository.SignInResult
 import mx.crnl.clinica.beta.domain.text.TextNormalizer
@@ -435,6 +441,12 @@ class FakeAppContainer(
     override val assignmentRepository: ProfessionalAssignmentRepository = FakeAssignmentRepository(),
     override val encounterRepository: EncounterRepository = FakeEncounterRepository(),
     override val homeRepository: HomeRepository = FakeHomeRepository(),
+    override val accountAdministrationRepository: AccountAdministrationRepository = FakeAccountAdministrationRepository(),
+    override val accessRequestRepository: AccessRequestRepository = FakeAccessRequestRepository(),
+    override val professionalChangeRepository: ProfessionalChangeRepository = FakeProfessionalChangeRepository(),
+    override val assessmentRepository: AssessmentRepository = FakeAssessmentRepository(),
+    override val auditRepository: AuditRepository = FakeAuditRepository(),
+    override val betaMaintenanceRepository: BetaMaintenanceRepository = FakeMaintenanceRepository(),
     override val localDataInitializer: LocalDataInitializer = LocalDataInitializer { SeedOutcome.AlreadyApplied },
     override val clock: Clock = fixedClock(),
 ) : AppContainer

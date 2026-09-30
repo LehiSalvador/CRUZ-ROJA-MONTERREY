@@ -19,6 +19,9 @@ object DateTimeFormats {
 
     fun time(instant: Instant): String = timeFormatter.format(instant.atZone(ClinicTime.zone))
 
+    /** Fecha y hora en Monterrey, p. ej. «6 oct 2026, 14:30»: para vigencias y momentos de una solicitud. */
+    fun dateTime(instant: Instant): String = date(instant) + ", " + time(instant)
+
     fun timeRange(start: Instant, end: Instant): String =
         "${timeFormatter.format(start.atZone(ClinicTime.zone))}–${timeFormatter.format(end.atZone(ClinicTime.zone))}"
 }

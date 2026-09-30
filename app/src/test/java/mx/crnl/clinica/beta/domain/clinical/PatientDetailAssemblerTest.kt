@@ -1,7 +1,9 @@
 package mx.crnl.clinica.beta.domain.clinical
 
 import java.time.Instant
+import mx.crnl.clinica.beta.domain.model.AdministrationMode
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
+import mx.crnl.clinica.beta.domain.model.AssessmentInstrument
 import mx.crnl.clinica.beta.domain.model.AssessmentStatus
 import mx.crnl.clinica.beta.domain.model.AssessmentSummary
 import mx.crnl.clinica.beta.domain.model.AssignmentStatus
@@ -65,9 +67,23 @@ class PatientDetailAssemblerTest {
         domainAppointment(id = "c-nut", area = NUTRITION),
     )
     private val assessments = listOf(
-        AssessmentSummary("s-psy", PSYCHOLOGY, "Nombre", AssessmentStatus.COMPLETED, Instant.EPOCH, hasResult = true, classificationLabel = null),
-        AssessmentSummary("s-nut", NUTRITION, "Nombre", AssessmentStatus.COMPLETED, Instant.EPOCH, hasResult = false, classificationLabel = null),
-        AssessmentSummary("s-sin-area", null, "Nombre", AssessmentStatus.STARTED, Instant.EPOCH, hasResult = false, classificationLabel = null),
+        assessment("s-psy", PSYCHOLOGY, AssessmentStatus.COMPLETED, rawScore = 10.0),
+        assessment("s-nut", NUTRITION, AssessmentStatus.COMPLETED),
+        assessment("s-sin-area", null, AssessmentStatus.STARTED),
+    )
+
+    private fun assessment(id: String, area: ClinicalArea?, status: AssessmentStatus, rawScore: Double? = null) = AssessmentSummary(
+        assessmentId = id,
+        area = area,
+        professionalName = "Nombre",
+        status = status,
+        startedAt = Instant.EPOCH,
+        completedAt = null,
+        instrument = AssessmentInstrument.PLACEHOLDER_A,
+        instrumentVersion = "0",
+        mode = AdministrationMode.PROFESSIONAL_CAPTURE,
+        hasResult = rawScore != null,
+        rawScore = rawScore,
     )
 
     private fun assemble(viewer: mx.crnl.clinica.beta.domain.model.UserAccount) = PatientDetailAssembler.assemble(

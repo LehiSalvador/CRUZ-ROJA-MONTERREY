@@ -3,8 +3,8 @@ package mx.crnl.clinica.beta.domain.home
 import java.time.Duration
 import java.time.Instant
 import mx.crnl.clinica.beta.domain.model.ActiveAssignment
-import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
+import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.PatientRecord
 import mx.crnl.clinica.beta.domain.model.PatientStatus
@@ -44,7 +44,7 @@ class HomeSummaryBuilderTest {
         user: UserAccount,
         appointments: List<AppointmentSummary> = emptyList(),
         pending: List<PendingAccessRequest> = emptyList(),
-    ) = HomeSummaryBuilder.build(user, patients, appointments, pending, now)
+    ) = HomeSummaryBuilder.build(user, patients, appointments, PendingWork(accessRequests = pending), now)
 
     @Test
     fun `un profesional cuenta los pacientes con una asignacion vigente a su nombre`() {
@@ -56,7 +56,7 @@ class HomeSummaryBuilderTest {
 
     @Test
     fun `sin asignaciones el conteo es cero y no un valor inventado`() {
-        val result = HomeSummaryBuilder.build(mariana, emptyList(), emptyList(), emptyList(), now)
+        val result = HomeSummaryBuilder.build(mariana, emptyList(), emptyList(), PendingWork(), now)
 
         assertEquals(0, result.patientCount)
         assertEquals(emptyList<Any>(), result.recentPatients)
@@ -171,7 +171,7 @@ class HomeSummaryBuilderTest {
     fun `los pacientes recientes son los cinco ultimos modificados, el mas reciente primero`() {
         val many = (1..7).map { record("p$it", professional = null, updated = it.toLong()) }
 
-        val result = HomeSummaryBuilder.build(admin, many, emptyList(), emptyList(), now)
+        val result = HomeSummaryBuilder.build(admin, many, emptyList(), PendingWork(), now)
 
         assertEquals(listOf("p7", "p6", "p5", "p4", "p3"), result.recentPatients.map { it.patientId })
     }
@@ -180,8 +180,77 @@ class HomeSummaryBuilderTest {
     fun `un paciente recien creado aparece primero entre los recientes`() {
         val created = record("p9", professional = null, updated = 1_000)
 
-        val result = HomeSummaryBuilder.build(mariana, patients + created, emptyList(), emptyList(), now)
+        val result = HomeSummaryBuilder.build(mariana, patients + created, emptyList(), PendingWork(), now)
 
         assertEquals("p9", result.recentPatients.first().patientId)
+    }
+
+    // ---------------------------------------------------------------- pendientes por rol (Fase 4)
+
+    private val system = userAccount(id = "system", role = UserRole.SYSTEM_ADMIN, area = null)
+
+    private fun pendingWork() = PendingWork(
+        accounts = listOf(
+            userAccount(id = "n1", role = UserRole.PROFESSIONAL, area = ClinicalArea.PSYCHOLOGY, status = mx.crnl.clinica.beta.domain.model.AccountStatus.PENDING_APPROVAL),
+            userAccount(id = "n2", role = UserRole.PROFESSIONAL, area = ClinicalArea.NUTRITION, status = mx.crnl.clinica.beta.domain.model.AccountStatus.PENDING_APPROVAL),
+            userAccount(id = "n3", role = UserRole.AREA_COORDINATOR, area = ClinicalArea.PSYCHOLOGY, status = mx.crnl.clinica.beta.domain.model.AccountStatus.PENDING_APPROVAL),
+        ),
+        accessRequests = listOf(
+            PendingAccessRequest("mariana", ClinicalArea.NUTRITION),
+            PendingAccessRequest("paola", ClinicalArea.PSYCHOLOGY),
+        ),
+        changeRequests = listOf(
+            mx.crnl.clinica.beta.domain.home.PendingChangeRequest("mariana", ClinicalArea.PSYCHOLOGY),
+            mx.crnl.clinica.beta.domain.home.PendingChangeRequest("paola", ClinicalArea.NUTRITION),
+        ),
+    )
+
+    private fun build(user: UserAccount) = HomeSummaryBuilder.build(user, patients, emptyList(), pendingWork(), now)
+
+    @Test
+    fun `un profesional cuenta solo lo propio y ninguna cuenta`() {
+        val result = build(mariana)
+
+        assertEquals(0, result.pendingAccountCount)
+        assertEquals(1, result.pendingAccessCount)
+        assertEquals(1, result.pendingChangeCount)
+        assertEquals(2, result.pendingRequestCount)
+    }
+
+    @Test
+    fun `coordinacion cuenta las cuentas de profesionales de su area y las solicitudes de su area`() {
+        val result = build(coordinator)
+
+        assertEquals("solo el profesional pendiente de Psicología, no la coordinación ni la de Nutrición", 1, result.pendingAccountCount)
+        assertEquals("la solicitud de acceso cuyo area propietaria es Psicología", 1, result.pendingAccessCount)
+        assertEquals("el cambio de un profesional de Psicología", 1, result.pendingChangeCount)
+        assertEquals(3, result.pendingRequestCount)
+    }
+
+    @Test
+    fun `administracion clinica cuenta todas las cuentas y solicitudes clinicas`() {
+        val result = build(admin)
+
+        assertEquals(3, result.pendingAccountCount)
+        assertEquals(2, result.pendingAccessCount)
+        assertEquals(2, result.pendingChangeCount)
+        assertEquals(7, result.pendingRequestCount)
+    }
+
+    @Test
+    fun `el administrador del sistema solo cuenta cuentas y ninguna solicitud de pacientes`() {
+        val result = build(system)
+
+        assertEquals(3, result.pendingAccountCount)
+        assertEquals(0, result.pendingAccessCount)
+        assertEquals(0, result.pendingChangeCount)
+        assertEquals(3, result.pendingRequestCount)
+    }
+
+    @Test
+    fun `una cuenta suspendida no cuenta pendientes`() {
+        val result = build(admin.copy(status = mx.crnl.clinica.beta.domain.model.AccountStatus.SUSPENDED))
+
+        assertEquals(0, result.pendingRequestCount)
     }
 }

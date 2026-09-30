@@ -23,7 +23,13 @@ Los correos no distinguen mayúsculas; la contraseña sí.
 
 ## Solicitar una cuenta
 
-**Solicitar cuenta** en la pantalla de acceso crea una cuenta con estado *Pendiente de aprobación* y su propia contraseña. Esa cuenta no puede iniciar sesión hasta que sea aprobada; en esta versión no existe pantalla de aprobación.
+**Solicitar cuenta** en la pantalla de acceso crea una cuenta con estado *Pendiente de aprobación* y su propia contraseña. Esa cuenta no puede iniciar sesión hasta que se apruebe: la coordinación de su área (solo profesionales de esa área) o la administración clínica la aprueba en **Solicitudes → Cuentas**. Si se rechaza, la cuenta queda *Rechazada* y no entra. Aprobar no cambia ni muestra la contraseña.
+
+Para probarlo: solicita una cuenta de *Profesional · Psicología*, entra como `claudia.benavides@example.org` (o `hector.montemayor@example.org`) y apruébala; `valeria.ramos@example.org` (Nutrición) solo la puede revisar la administración clínica.
+
+## Volver al estado inicial
+
+La administración clínica puede restablecer los datos ficticios en **Perfil → Herramientas de Beta → Restablecer datos de Beta**: elimina los cambios locales (pacientes, citas, solicitudes, cuentas nuevas y bitácora) y restaura las cuentas y los datos de esta tabla. Pide dos confirmaciones y cierra la sesión.
 
 ## Datos de contacto y cédulas
 

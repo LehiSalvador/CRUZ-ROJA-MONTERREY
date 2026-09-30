@@ -11,6 +11,8 @@ import mx.crnl.clinica.beta.data.local.mapper.toRecord
 import mx.crnl.clinica.beta.domain.home.HomeSummary
 import mx.crnl.clinica.beta.domain.home.HomeSummaryBuilder
 import mx.crnl.clinica.beta.domain.home.PendingAccessRequest
+import mx.crnl.clinica.beta.domain.home.PendingChangeRequest
+import mx.crnl.clinica.beta.domain.home.PendingWork
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.repository.HomeRepository
@@ -19,20 +21,28 @@ class LocalHomeRepository(database: ClinicalDatabase, private val clock: Clock) 
     private val patientDao = database.patientDao()
     private val appointmentDao = database.appointmentDao()
     private val accessRequestDao = database.accessRequestDao()
+    private val overrideDao = database.overrideRequestDao()
+    private val userDao = database.userDao()
 
     override fun observeSummary(user: UserAccount): Flow<HomeSummary> = combine(
         patientDao.observeAggregates(),
         appointmentDao.observeRows(),
-        accessRequestDao.observePending(),
+        combine(userDao.observePendingAccounts(), accessRequestDao.observePending(), overrideDao.observePending()) { accounts, access, changes ->
+            PendingWork(
+                accounts = accounts.map { it.toDomain() },
+                accessRequests = access.map { PendingAccessRequest(it.requesterUserId, area(it.ownerAreaCode)) },
+                changeRequests = changes.map { PendingChangeRequest(it.requesterUserId, area(it.areaCode)) },
+            )
+        },
     ) { patients, appointments, pending ->
         HomeSummaryBuilder.build(
             user = user,
             patients = patients.map { it.toRecord() },
             appointments = appointments.map { it.toDomain() },
-            pendingRequests = pending.map { request ->
-                PendingAccessRequest(request.requesterUserId, ClinicalArea.entries.firstOrNull { it.name == request.ownerAreaCode })
-            },
+            pending = pending,
             now = clock.instant(),
         )
     }.flowOn(Dispatchers.Default)
+
+    private fun area(code: String): ClinicalArea? = ClinicalArea.entries.firstOrNull { it.name == code }
 }

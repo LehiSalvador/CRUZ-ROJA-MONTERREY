@@ -37,8 +37,10 @@ import mx.crnl.clinica.beta.core.ui.state.UiState
 import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
 import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
+import mx.crnl.clinica.beta.domain.home.HomeSummary
 import mx.crnl.clinica.beta.domain.home.PatientMetric
 import mx.crnl.clinica.beta.domain.model.Patient
+import mx.crnl.clinica.beta.domain.model.UserRole
 import mx.crnl.clinica.beta.feature.appointments.AppointmentCard
 
 class HomeActions(
@@ -50,6 +52,7 @@ class HomeActions(
     val onOpenAppointment: (String) -> Unit,
     val onNewAppointment: () -> Unit,
     val onOpenRequests: () -> Unit,
+    val onOpenAdministration: () -> Unit,
 )
 
 @Composable
@@ -100,6 +103,12 @@ private fun HomeContentView(content: HomeContent, actions: HomeActions) {
             )
         }
 
+        // El administrador del sistema no recibe contenido clínico: su Inicio es solo administrativo.
+        if (user.role == UserRole.SYSTEM_ADMIN) {
+            SystemAdminHome(summary, actions)
+            return@Column
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             PrimaryButton(
                 text = stringResource(R.string.home_action_new_patient),
@@ -137,9 +146,17 @@ private fun HomeContentView(content: HomeContent, actions: HomeActions) {
                 count = summary.upcomingAppointmentCount,
                 onClick = actions.onOpenAppointments,
             )
+            // Quien revisa cuentas (coordinación, administración clínica) las ve contadas aparte de las solicitudes.
+            if (user.role == UserRole.AREA_COORDINATOR || user.role == UserRole.CLINICAL_ADMIN) {
+                MetricCard(
+                    label = stringResource(R.string.home_metric_accounts),
+                    count = summary.pendingAccountCount,
+                    onClick = actions.onOpenRequests,
+                )
+            }
             MetricCard(
                 label = stringResource(R.string.home_metric_requests),
-                count = summary.pendingRequestCount,
+                count = summary.pendingAccessCount + summary.pendingChangeCount,
                 onClick = actions.onOpenRequests,
             )
         }
@@ -166,6 +183,29 @@ private fun HomeContentView(content: HomeContent, actions: HomeActions) {
                 }
             }
         }
+    }
+}
+
+/** Inicio del administrador del sistema: cuentas por atender y acceso a las herramientas técnicas, sin datos clínicos. */
+@Composable
+private fun SystemAdminHome(summary: HomeSummary, actions: HomeActions) {
+    MetricCard(
+        label = stringResource(R.string.home_metric_accounts),
+        count = summary.pendingAccountCount,
+        onClick = actions.onOpenRequests,
+    )
+    ClinicalCard(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(title = stringResource(R.string.home_admin_title))
+        Text(
+            text = stringResource(R.string.home_admin_message),
+            modifier = Modifier.padding(top = Spacing.sm),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        SecondaryButton(
+            text = stringResource(R.string.home_admin_action),
+            onClick = actions.onOpenAdministration,
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
+        )
     }
 }
 

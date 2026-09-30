@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import mx.crnl.clinica.beta.domain.model.AssessmentInstrument
 import mx.crnl.clinica.beta.domain.model.AssessmentStatus
 import mx.crnl.clinica.beta.domain.model.AuditAction
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
@@ -503,7 +504,8 @@ class LocalPatientRepositoryTest : RepositoryTest() {
         assertEquals(ClinicalArea.PSYCHOLOGY, assessment.area)
         assertEquals(AssessmentStatus.COMPLETED, assessment.status)
         assertTrue(assessment.hasResult)
-        assertNull("el resultado sin clasificar no inventa una etiqueta", assessment.classificationLabel)
+        assertEquals(AssessmentInstrument.PLACEHOLDER_B, assessment.instrument)
+        assertEquals(31.0, assessment.rawScore!!, 0.0)
     }
 
     @Test
