@@ -6,8 +6,15 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import mx.crnl.clinica.beta.domain.patient.PatientFormValidator
 import mx.crnl.clinica.beta.feature.appointments.AppointmentsViewModel
+import mx.crnl.clinica.beta.feature.appointments.detail.AppointmentDetailViewModel
+import mx.crnl.clinica.beta.feature.appointments.form.EditAppointmentViewModel
+import mx.crnl.clinica.beta.feature.appointments.form.NewAppointmentViewModel
+import mx.crnl.clinica.beta.feature.appointments.form.RescheduleAppointmentViewModel
+import mx.crnl.clinica.beta.feature.assignments.AssignProfessionalViewModel
 import mx.crnl.clinica.beta.feature.auth.LoginViewModel
 import mx.crnl.clinica.beta.feature.auth.RequestAccountViewModel
+import mx.crnl.clinica.beta.feature.encounters.EncounterDetailViewModel
+import mx.crnl.clinica.beta.feature.encounters.NewEncounterViewModel
 import mx.crnl.clinica.beta.feature.home.HomeViewModel
 import mx.crnl.clinica.beta.feature.patients.PatientsViewModel
 import mx.crnl.clinica.beta.feature.patients.create.NewPatientViewModel
@@ -52,6 +59,41 @@ fun clinicalViewModelFactory(
             PatientFormValidator(container.clock),
         )
     }
-    initializer { AppointmentsViewModel(container.appointmentRepository, container.clock) }
+    initializer {
+        AppointmentsViewModel(createSavedStateHandle(), container.authRepository, container.appointmentRepository, container.clock)
+    }
+    initializer {
+        AppointmentDetailViewModel(
+            createSavedStateHandle(),
+            container.authRepository,
+            container.appointmentRepository,
+            container.assignmentRepository,
+            container.clock,
+        )
+    }
+    initializer {
+        NewAppointmentViewModel(
+            createSavedStateHandle(),
+            container.authRepository,
+            container.patientRepository,
+            container.assignmentRepository,
+            container.appointmentRepository,
+            container.clock,
+        )
+    }
+    initializer { EditAppointmentViewModel(createSavedStateHandle(), container.authRepository, container.appointmentRepository) }
+    initializer {
+        RescheduleAppointmentViewModel(createSavedStateHandle(), container.authRepository, container.appointmentRepository, container.clock)
+    }
+    initializer {
+        AssignProfessionalViewModel(
+            createSavedStateHandle(),
+            container.authRepository,
+            container.patientRepository,
+            container.assignmentRepository,
+        )
+    }
+    initializer { NewEncounterViewModel(createSavedStateHandle(), container.authRepository, container.encounterRepository, container.clock) }
+    initializer { EncounterDetailViewModel(createSavedStateHandle(), container.authRepository, container.encounterRepository) }
     initializer { ProfileViewModel(container.authRepository) }
 }

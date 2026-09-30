@@ -16,6 +16,8 @@ import mx.crnl.clinica.beta.data.local.entity.PatientEntity
 import mx.crnl.clinica.beta.data.local.entity.ProfessionalAssignmentEntity
 import mx.crnl.clinica.beta.domain.model.AccountStatus
 import mx.crnl.clinica.beta.domain.model.ActiveAssignment
+import mx.crnl.clinica.beta.domain.model.AreaActivity
+import mx.crnl.clinica.beta.domain.model.AssignmentStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentModality
 import mx.crnl.clinica.beta.domain.model.AppointmentStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
@@ -304,4 +306,27 @@ fun patientDetail(
     appointments: List<AppointmentSummary> = emptyList(),
     encounters: List<EncounterSummary> = emptyList(),
     assessments: List<AssessmentSummary> = emptyList(),
-): PatientDetail = PatientDetail(patient, contacts, assignments, appointments, encounters, assessments)
+    assignmentHistory: List<PatientAssignment> = assignments,
+    viewableAreas: Set<ClinicalArea> = ClinicalArea.entries.toSet(),
+    restrictedAreas: List<AreaActivity> = emptyList(),
+): PatientDetail = PatientDetail(
+    patient, contacts, assignments, appointments, encounters, assessments, assignmentHistory, viewableAreas, restrictedAreas,
+)
+
+fun patientAssignment(
+    area: ClinicalArea = ClinicalArea.PSYCHOLOGY,
+    professionalId: String = "user-1",
+    professionalName: String = "Mariana Elizondo",
+    since: Instant = Instant.EPOCH,
+    id: String = "assignment-$area",
+) = PatientAssignment(
+    assignmentId = id,
+    area = area,
+    professionalId = professionalId,
+    professionalName = professionalName,
+    since = since,
+    until = null,
+    status = AssignmentStatus.ACTIVE,
+    reason = "Asignación inicial",
+    assignedByName = "Claudia Benavides Rangel",
+)

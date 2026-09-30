@@ -9,8 +9,10 @@ import mx.crnl.clinica.beta.core.security.PasswordHasher
 import mx.crnl.clinica.beta.data.repository.AuditRecorder
 import mx.crnl.clinica.beta.data.repository.LocalAppointmentRepository
 import mx.crnl.clinica.beta.data.repository.LocalAuthRepository
+import mx.crnl.clinica.beta.data.repository.LocalEncounterRepository
 import mx.crnl.clinica.beta.data.repository.LocalHomeRepository
 import mx.crnl.clinica.beta.data.repository.LocalPatientRepository
+import mx.crnl.clinica.beta.data.repository.LocalProfessionalAssignmentRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 
 /** El ensamblado real de la app (repositorios locales sobre Room) con sesión en memoria y reloj fijo. */
@@ -25,7 +27,9 @@ class RoomAppContainer(
 
     override val authRepository = LocalAuthRepository(database, sessionRepository, PasswordHasher(defaultIterations = 1_000), audit, clock, newId)
     override val patientRepository = LocalPatientRepository(database, audit, clock, newId)
-    override val appointmentRepository = LocalAppointmentRepository(database.appointmentDao())
+    override val appointmentRepository = LocalAppointmentRepository(database, audit, clock, newId)
+    override val assignmentRepository = LocalProfessionalAssignmentRepository(database, audit, clock, newId)
+    override val encounterRepository = LocalEncounterRepository(database, audit, clock, newId)
     override val homeRepository = LocalHomeRepository(database, clock)
     override val localDataInitializer = LocalDataInitializer { SeedOutcome.AlreadyApplied }
 }

@@ -97,6 +97,43 @@ class HomeSummaryBuilderTest {
     }
 
     @Test
+    fun `una cita reprogramada sigue contando como proxima`() {
+        val appointments = listOf(
+            domainAppointment(id = "reprogramada", professionalId = "mariana", start = later(48), status = AppointmentStatus.RESCHEDULED),
+        )
+
+        assertEquals(listOf("reprogramada"), summary(mariana, appointments).upcomingAppointments.map { it.appointmentId })
+    }
+
+    @Test
+    fun `el administrador del sistema no recibe citas ni pacientes por su rol tecnico en la agenda`() {
+        val systemAdmin = userAccount(id = "sys", role = UserRole.SYSTEM_ADMIN, area = null)
+        val appointments = listOf(domainAppointment(id = "cualquiera", start = later(2), professionalId = "mariana"))
+
+        val result = summary(systemAdmin, appointments)
+
+        assertEquals(0, result.upcomingAppointmentCount)
+        assertEquals(0, result.todayAppointmentCount)
+        assertEquals(emptyList<Any>(), result.upcomingAppointments)
+    }
+
+    @Test
+    fun `las citas de hoy se cuentan por rol, sin canceladas y en hora de Monterrey`() {
+        val appointments = listOf(
+            domainAppointment(id = "hoy-1", professionalId = "mariana", start = later(1)), // 11:00
+            domainAppointment(id = "hoy-realizada", professionalId = "mariana", start = now.minusSeconds(3_600), status = AppointmentStatus.COMPLETED),
+            domainAppointment(id = "hoy-cancelada", professionalId = "mariana", start = later(2), status = AppointmentStatus.CANCELLED),
+            domainAppointment(id = "hoy-ajena", professionalId = "rodrigo", start = later(3)),
+            domainAppointment(id = "manana", professionalId = "mariana", start = later(24)),
+            domainAppointment(id = "ayer", professionalId = "mariana", start = later(-24)),
+        )
+
+        assertEquals(2, summary(mariana, appointments).todayAppointmentCount)
+        assertEquals(3, summary(coordinator, appointments).todayAppointmentCount)
+        assertEquals(3, summary(admin, appointments).todayAppointmentCount)
+    }
+
+    @Test
     fun `coordinacion ve las citas de su area y administracion todas`() {
         val appointments = listOf(
             domainAppointment(id = "psico", start = later(1), area = ClinicalArea.PSYCHOLOGY, professionalId = "rodrigo"),

@@ -25,6 +25,7 @@ class AuditRecorder(
         entityId: String?,
         patientId: String? = null,
         metadata: Map<String, JsonElement>? = null,
+        areaCode: String? = null,
     ) {
         auditDao.insert(
             AuditEntryEntity(
@@ -34,7 +35,7 @@ class AuditRecorder(
                 entityType = entityType,
                 entityId = entityId,
                 patientId = patientId,
-                areaCode = null,
+                areaCode = areaCode,
                 occurredAt = clock.millis(),
                 result = RESULT_SUCCESS,
                 metadata = metadata?.let { JsonObject(it).toString() },
@@ -46,6 +47,8 @@ class AuditRecorder(
         const val RESULT_SUCCESS = "SUCCESS"
 
         fun text(value: String): JsonElement = JsonPrimitive(value)
+
+        fun flag(value: Boolean): JsonElement = JsonPrimitive(value)
 
         fun list(values: List<String>): JsonElement = JsonArray(values.map(::JsonPrimitive))
     }

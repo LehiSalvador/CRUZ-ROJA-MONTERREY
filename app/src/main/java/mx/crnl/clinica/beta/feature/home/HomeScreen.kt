@@ -36,6 +36,7 @@ import mx.crnl.clinica.beta.core.ui.label.labelRes
 import mx.crnl.clinica.beta.core.ui.state.UiState
 import mx.crnl.clinica.beta.core.ui.theme.ContentMaxWidth
 import mx.crnl.clinica.beta.core.ui.theme.Spacing
+import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
 import mx.crnl.clinica.beta.domain.home.PatientMetric
 import mx.crnl.clinica.beta.domain.model.Patient
 import mx.crnl.clinica.beta.feature.appointments.AppointmentCard
@@ -46,6 +47,8 @@ class HomeActions(
     val onOpenPatients: () -> Unit,
     val onOpenPatient: (String) -> Unit,
     val onOpenAppointments: () -> Unit,
+    val onOpenAppointment: (String) -> Unit,
+    val onNewAppointment: () -> Unit,
     val onOpenRequests: () -> Unit,
 )
 
@@ -110,11 +113,24 @@ private fun HomeContentView(content: HomeContent, actions: HomeActions) {
             )
         }
 
+        if (BetaClinicalAccessPolicy.manageableAreas(user).isNotEmpty()) {
+            SecondaryButton(
+                text = stringResource(R.string.home_action_new_appointment),
+                onClick = actions.onNewAppointment,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             MetricCard(
                 label = stringResource(summary.patientMetric.metricLabelRes()),
                 count = summary.patientCount,
                 onClick = actions.onOpenPatients,
+            )
+            MetricCard(
+                label = stringResource(R.string.home_metric_today),
+                count = summary.todayAppointmentCount,
+                onClick = actions.onOpenAppointments,
             )
             MetricCard(
                 label = stringResource(R.string.home_metric_appointments),
@@ -146,7 +162,7 @@ private fun HomeContentView(content: HomeContent, actions: HomeActions) {
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 summary.upcomingAppointments.forEach { appointment ->
-                    AppointmentCard(appointment, onClick = actions.onOpenAppointments)
+                    AppointmentCard(appointment, onClick = { actions.onOpenAppointment(appointment.appointmentId) })
                 }
             }
         }

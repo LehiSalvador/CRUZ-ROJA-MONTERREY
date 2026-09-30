@@ -3,6 +3,7 @@ package mx.crnl.clinica.beta.testing
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -13,20 +14,37 @@ import mx.crnl.clinica.beta.app.AppContainer
 import mx.crnl.clinica.beta.core.demo.LocalDataInitializer
 import mx.crnl.clinica.beta.core.demo.SeedOutcome
 import mx.crnl.clinica.beta.domain.account.AccountRequest
+import mx.crnl.clinica.beta.domain.access.BetaClinicalAccessPolicy
 import mx.crnl.clinica.beta.domain.account.AccountRequestValidator
+import mx.crnl.clinica.beta.domain.appointment.AppointmentAction
+import mx.crnl.clinica.beta.domain.common.OperationError
+import mx.crnl.clinica.beta.domain.common.OperationResult
 import mx.crnl.clinica.beta.domain.home.HomeSummary
 import mx.crnl.clinica.beta.domain.home.PatientMetric
 import mx.crnl.clinica.beta.domain.model.AccountStatus
+import mx.crnl.clinica.beta.domain.model.AppointmentAdminUpdate
+import mx.crnl.clinica.beta.domain.model.AppointmentDetail
+import mx.crnl.clinica.beta.domain.model.AppointmentDraft
+import mx.crnl.clinica.beta.domain.model.AppointmentReschedule
+import mx.crnl.clinica.beta.domain.model.AppointmentStatus
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
+import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.ContactType
 import mx.crnl.clinica.beta.domain.model.DuplicateCandidate
+import mx.crnl.clinica.beta.domain.model.EncounterDetail
+import mx.crnl.clinica.beta.domain.model.EncounterDraft
+import mx.crnl.clinica.beta.domain.model.EncounterFormContext
+import mx.crnl.clinica.beta.domain.model.EncounterSummary
+import mx.crnl.clinica.beta.domain.model.OPEN_APPOINTMENT_STATUSES
 import mx.crnl.clinica.beta.domain.model.Patient
+import mx.crnl.clinica.beta.domain.model.PatientAssignment
 import mx.crnl.clinica.beta.domain.model.PatientContact
 import mx.crnl.clinica.beta.domain.model.PatientDetail
 import mx.crnl.clinica.beta.domain.model.PatientDraft
 import mx.crnl.clinica.beta.domain.model.PatientRecord
 import mx.crnl.clinica.beta.domain.model.PatientStatus
 import mx.crnl.clinica.beta.domain.model.PatientSummary
+import mx.crnl.clinica.beta.domain.model.ProfessionalOption
 import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.model.UserRole
 import mx.crnl.clinica.beta.domain.patient.DuplicateDetector
@@ -35,10 +53,12 @@ import mx.crnl.clinica.beta.domain.patient.PatientSearch
 import mx.crnl.clinica.beta.domain.repository.AccountRequestResult
 import mx.crnl.clinica.beta.domain.repository.AppointmentRepository
 import mx.crnl.clinica.beta.domain.repository.AuthRepository
+import mx.crnl.clinica.beta.domain.repository.EncounterRepository
 import mx.crnl.clinica.beta.domain.repository.HomeRepository
 import mx.crnl.clinica.beta.domain.repository.PatientFilter
 import mx.crnl.clinica.beta.domain.repository.PatientNotFoundException
 import mx.crnl.clinica.beta.domain.repository.PatientRepository
+import mx.crnl.clinica.beta.domain.repository.ProfessionalAssignmentRepository
 import mx.crnl.clinica.beta.domain.repository.SessionRepository
 import mx.crnl.clinica.beta.domain.repository.SignInResult
 import mx.crnl.clinica.beta.domain.text.TextNormalizer
@@ -167,7 +187,7 @@ class FakePatientRepository(initial: List<PatientRecord> = emptyList()) : Patien
 
     override suspend fun getPatient(patientId: String): Patient? = records.value.firstOrNull { it.patient.patientId == patientId }?.patient
 
-    override fun observePatientDetail(patientId: String): Flow<PatientDetail?> = flow {
+    override fun observePatientDetail(patientId: String, viewer: UserAccount): Flow<PatientDetail?> = flow {
         if (failing) throw IOException("fallo simulado")
         emitAll(details.map { it[patientId] })
     }
@@ -250,13 +270,138 @@ class FakePatientRepository(initial: List<PatientRecord> = emptyList()) : Patien
     )
 }
 
+/**
+ * Citas en memoria para probar pantallas y ViewModels. Las lecturas reflejan [appointments] y [details]; las escrituras
+ * se registran y devuelven lo que indiquen los `…Result` (por omisión, rechazan por falta de permiso).
+ */
 class FakeAppointmentRepository(initial: List<AppointmentSummary> = emptyList()) : AppointmentRepository {
     val appointments = MutableStateFlow(initial)
+    val details = MutableStateFlow<Map<String, AppointmentDetail>>(emptyMap())
     var failing = false
 
-    override fun observeAppointments(): Flow<List<AppointmentSummary>> = flow {
+    /** Mientras no sea nulo, cada escritura espera a que se complete: sirve para probar el doble toque. */
+    var gate: CompletableDeferred<Unit>? = null
+
+    var createResult: (AppointmentDraft) -> OperationResult<AppointmentDetail> = { OperationResult.Failure(OperationError.NotAuthorized) }
+    var updateResult: OperationResult<AppointmentDetail> = OperationResult.Failure(OperationError.NotAuthorized)
+    var rescheduleResult: OperationResult<AppointmentDetail> = OperationResult.Failure(OperationError.NotAuthorized)
+    var actionResult: OperationResult<AppointmentDetail> = OperationResult.Failure(OperationError.NotAuthorized)
+
+    val created = mutableListOf<Pair<AppointmentDraft, String>>()
+    val updated = mutableListOf<Triple<String, AppointmentAdminUpdate, String>>()
+    val rescheduled = mutableListOf<Triple<String, AppointmentReschedule, AppointmentStatus>>()
+    val actions = mutableListOf<Triple<String, AppointmentAction, String?>>()
+    val whatsAppOpened = mutableListOf<Pair<String, String>>()
+    val viewers = mutableListOf<UserAccount>()
+
+    override fun observeAppointments(viewer: UserAccount): Flow<List<AppointmentSummary>> = flow {
+        viewers += viewer
         if (failing) throw IOException("fallo simulado")
-        emitAll(appointments.map { list -> list.sortedBy { it.start } })
+        val scope = BetaClinicalAccessPolicy.appointmentScope(viewer)
+        emitAll(appointments.map { list -> list.filter { scope.accepts(it.area, it.professionalId) }.sortedBy { it.start } })
+    }
+
+    override fun observePatientAppointments(patientId: String, viewer: UserAccount): Flow<List<AppointmentSummary>> = flow {
+        if (failing) throw IOException("fallo simulado")
+        val viewable = BetaClinicalAccessPolicy.viewableAreas(viewer)
+        emitAll(appointments.map { list -> list.filter { it.patientId == patientId && it.area in viewable }.sortedBy { it.start } })
+    }
+
+    override fun observeAppointment(appointmentId: String, viewer: UserAccount): Flow<AppointmentDetail?> = flow {
+        if (failing) throw IOException("fallo simulado")
+        emitAll(details.map { it[appointmentId] })
+    }
+
+    override suspend fun getAppointment(appointmentId: String, viewer: UserAccount): AppointmentDetail? = details.value[appointmentId]
+
+    override suspend fun getNextAppointment(patientId: String, viewer: UserAccount): AppointmentSummary? =
+        appointments.value.filter { it.patientId == patientId && it.status in OPEN_APPOINTMENT_STATUSES }.minByOrNull { it.start }
+
+    override suspend fun createAppointment(draft: AppointmentDraft, actorUserId: String): OperationResult<AppointmentDetail> {
+        gate?.await()
+        created += draft to actorUserId
+        return createResult(draft)
+    }
+
+    override suspend fun updateAdministrativeData(appointmentId: String, update: AppointmentAdminUpdate, actorUserId: String): OperationResult<AppointmentDetail> {
+        gate?.await()
+        updated += Triple(appointmentId, update, actorUserId)
+        return updateResult
+    }
+
+    override suspend fun reschedule(appointmentId: String, schedule: AppointmentReschedule, expectedStatus: AppointmentStatus, actorUserId: String): OperationResult<AppointmentDetail> {
+        gate?.await()
+        rescheduled += Triple(appointmentId, schedule, expectedStatus)
+        return rescheduleResult
+    }
+
+    override suspend fun applyAction(appointmentId: String, action: AppointmentAction, expectedStatus: AppointmentStatus, reason: String?, actorUserId: String): OperationResult<AppointmentDetail> {
+        gate?.await()
+        actions += Triple(appointmentId, action, reason)
+        return actionResult
+    }
+
+    override suspend fun recordWhatsAppOpened(appointmentId: String, actorUserId: String): OperationResult<Unit> {
+        whatsAppOpened += appointmentId to actorUserId
+        return OperationResult.Success(Unit)
+    }
+}
+
+class FakeAssignmentRepository : ProfessionalAssignmentRepository {
+    val active = MutableStateFlow<List<PatientAssignment>>(emptyList())
+    var professionals: List<ProfessionalOption> = emptyList()
+    var failing = false
+    var gate: CompletableDeferred<Unit>? = null
+    var createResult: OperationResult<PatientAssignment> = OperationResult.Failure(OperationError.NotAuthorized)
+    val created = mutableListOf<List<Any?>>()
+
+    override fun observeActiveAssignments(patientId: String, viewer: UserAccount): Flow<List<PatientAssignment>> = active
+
+    override fun observeHistory(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<PatientAssignment>> =
+        active.map { list -> list.filter { it.area == area } }
+
+    override suspend fun getActiveAssignment(patientId: String, area: ClinicalArea, viewer: UserAccount): PatientAssignment? {
+        if (failing) throw IOException("fallo simulado")
+        return active.value.firstOrNull { it.area == area }
+    }
+
+    override suspend fun listAssignableProfessionals(area: ClinicalArea, viewer: UserAccount): List<ProfessionalOption> {
+        if (failing) throw IOException("fallo simulado")
+        return professionals.filter { it.area == area }
+    }
+
+    override suspend fun createInitialAssignment(patientId: String, area: ClinicalArea, professionalId: String, reason: String?, actorUserId: String): OperationResult<PatientAssignment> {
+        gate?.await()
+        created += listOf(patientId, area, professionalId, reason, actorUserId)
+        return createResult
+    }
+}
+
+class FakeEncounterRepository : EncounterRepository {
+    val encounters = MutableStateFlow<Map<String, EncounterDetail>>(emptyMap())
+    var context: EncounterFormContext? = null
+    var failing = false
+    var gate: CompletableDeferred<Unit>? = null
+    var createResult: OperationResult<EncounterDetail> = OperationResult.Failure(OperationError.NotAuthorized)
+    val created = mutableListOf<Pair<EncounterDraft, String>>()
+
+    override fun observeAreaEncounters(patientId: String, area: ClinicalArea, viewer: UserAccount): Flow<List<EncounterSummary>> =
+        encounters.map { map -> map.values.filter { it.patientId == patientId && it.summary.area == area }.map { it.summary } }
+
+    override fun observeEncounter(encounterId: String, viewer: UserAccount): Flow<EncounterDetail?> = flow {
+        if (failing) throw IOException("fallo simulado")
+        emitAll(encounters.map { it[encounterId] })
+    }
+
+    override suspend fun getFormContext(patientId: String, area: ClinicalArea, viewer: UserAccount): EncounterFormContext? {
+        if (failing) throw IOException("fallo simulado")
+        return context
+    }
+
+    override suspend fun createEncounter(draft: EncounterDraft, actorUserId: String): OperationResult<EncounterDetail> {
+        gate?.await()
+        created += draft to actorUserId
+        return createResult
     }
 }
 
@@ -276,6 +421,7 @@ fun emptyHomeSummary(role: UserRole = UserRole.PROFESSIONAL) = HomeSummary(
     patientMetric = if (role == UserRole.PROFESSIONAL) PatientMetric.ASSIGNED_TO_USER else PatientMetric.ALL_ACTIVE_PATIENTS,
     patientCount = 0,
     upcomingAppointmentCount = 0,
+    todayAppointmentCount = 0,
     pendingRequestCount = 0,
     recentPatients = emptyList(),
     upcomingAppointments = emptyList(),
@@ -286,6 +432,8 @@ class FakeAppContainer(
     override val authRepository: AuthRepository = FakeAuthRepository(),
     override val patientRepository: PatientRepository = FakePatientRepository(),
     override val appointmentRepository: AppointmentRepository = FakeAppointmentRepository(),
+    override val assignmentRepository: ProfessionalAssignmentRepository = FakeAssignmentRepository(),
+    override val encounterRepository: EncounterRepository = FakeEncounterRepository(),
     override val homeRepository: HomeRepository = FakeHomeRepository(),
     override val localDataInitializer: LocalDataInitializer = LocalDataInitializer { SeedOutcome.AlreadyApplied },
     override val clock: Clock = fixedClock(),

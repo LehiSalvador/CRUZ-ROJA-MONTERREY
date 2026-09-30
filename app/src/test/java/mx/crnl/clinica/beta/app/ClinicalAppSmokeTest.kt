@@ -65,8 +65,8 @@ class ClinicalAppSmokeTest {
     }
     private val appointments = FakeAppointmentRepository(
         listOf(
-            domainAppointment(id = "next", patientName = "Fernanda Guerra Domínguez", start = TestNow.toInstant().plus(Duration.ofDays(1))),
-            domainAppointment(id = "old", patientName = "Luis Mireles Cortés", start = TestNow.toInstant().minus(Duration.ofDays(7))),
+            domainAppointment(id = "next", patientName = "Fernanda Guerra Domínguez", start = TestNow.toInstant().plus(Duration.ofDays(1)), professionalId = "mariana"),
+            domainAppointment(id = "old", patientName = "Luis Mireles Cortés", start = TestNow.toInstant().minus(Duration.ofDays(7)), professionalId = "mariana"),
         ),
     )
     private val home = FakeHomeRepository(
@@ -115,9 +115,8 @@ class ClinicalAppSmokeTest {
         openTab("Citas")
         composeRule.waitForText("Fernanda Guerra Domínguez")
         composeRule.onNodeWithText("Próximas").assertIsDisplayed()
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Historial"))
-        composeRule.onNodeWithText("Historial").assertIsDisplayed()
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Luis Mireles Cortés"))
+        composeRule.tap("Historial")
+        composeRule.waitForText("Luis Mireles Cortés")
         composeRule.onNodeWithText("Luis Mireles Cortés").assertIsDisplayed()
 
         openTab("Solicitudes")

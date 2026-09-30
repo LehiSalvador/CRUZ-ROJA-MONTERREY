@@ -14,6 +14,8 @@ data class HomeSummary(
     val patientMetric: PatientMetric,
     val patientCount: Int,
     val upcomingAppointmentCount: Int,
+    /** Citas del día (hora de Monterrey) que no se cancelaron, dentro de lo que la persona puede ver. */
+    val todayAppointmentCount: Int,
     val pendingRequestCount: Int,
     val recentPatients: List<Patient>,
     val upcomingAppointments: List<AppointmentSummary>,

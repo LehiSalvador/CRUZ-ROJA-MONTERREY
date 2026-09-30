@@ -41,6 +41,13 @@ fun ComposeTestRule.waitForText(text: String, timeoutMillis: Long = DEFAULT_TIME
     waitUntilOrDescribe("No apareció «$text»", timeoutMillis) { hasTextNow(text) }
 }
 
+/** Espera un nodo cuyo texto contenga [text] (p. ej. una hora dentro de una línea con la fecha). */
+fun ComposeTestRule.waitForTextContaining(text: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS) {
+    waitUntilOrDescribe("No apareció un texto que contenga «$text»", timeoutMillis) {
+        onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
+    }
+}
+
 fun ComposeTestRule.waitForTextGone(text: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS) {
     waitUntilOrDescribe("Siguió apareciendo «$text»", timeoutMillis) { !hasTextNow(text) }
 }

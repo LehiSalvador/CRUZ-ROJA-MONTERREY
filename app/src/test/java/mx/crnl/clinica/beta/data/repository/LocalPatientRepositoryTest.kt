@@ -18,6 +18,7 @@ import mx.crnl.clinica.beta.domain.repository.PatientFilter
 import mx.crnl.clinica.beta.domain.repository.PatientNotFoundException
 import mx.crnl.clinica.beta.testing.BetaAccounts
 import mx.crnl.clinica.beta.testing.RepositoryTest
+import mx.crnl.clinica.beta.testing.SeedIds
 import mx.crnl.clinica.beta.testing.TestNow
 import mx.crnl.clinica.beta.testing.assertFailsWithType
 import mx.crnl.clinica.beta.testing.fixedClock
@@ -487,7 +488,7 @@ class LocalPatientRepositoryTest : RepositoryTest() {
     fun `el expediente reune contactos, asignaciones, citas, consultas y evaluaciones reales`() = runTest {
         val fernanda = "b0000000-0000-4000-8000-000000000003"
 
-        val detail = patients.observePatientDetail(fernanda).first()!!
+        val detail = patients.observePatientDetail(fernanda, account(SeedIds.HECTOR)).first()!!
 
         assertEquals("CRNL-000003", detail.patient.patientNumber)
         assertEquals(listOf("+528100000103", "fernanda.guerra@example.org"), detail.contacts.map { it.value }.sortedBy { !it.startsWith("+") })
@@ -507,7 +508,7 @@ class LocalPatientRepositoryTest : RepositoryTest() {
 
     @Test
     fun `la proxima cita del expediente es la mas cercana que todavia puede ocurrir`() = runTest {
-        val detail = patients.observePatientDetail("b0000000-0000-4000-8000-000000000003").first()!!
+        val detail = patients.observePatientDetail("b0000000-0000-4000-8000-000000000003", account(SeedIds.HECTOR)).first()!!
 
         val next = detail.nextAppointment(TestNow.toInstant())!!
 
@@ -517,7 +518,7 @@ class LocalPatientRepositoryTest : RepositoryTest() {
 
     @Test
     fun `un paciente sin consultas ni evaluaciones tiene secciones vacias en lugar de datos inventados`() = runTest {
-        val detail = patients.observePatientDetail("b0000000-0000-4000-8000-000000000005").first()!!
+        val detail = patients.observePatientDetail("b0000000-0000-4000-8000-000000000005", account(SeedIds.HECTOR)).first()!!
 
         assertEquals(emptyList<Any>(), detail.encounters)
         assertEquals(emptyList<Any>(), detail.assessments)
@@ -526,21 +527,21 @@ class LocalPatientRepositoryTest : RepositoryTest() {
 
     @Test
     fun `un paciente inexistente emite nulo`() = runTest {
-        assertNull(patients.observePatientDetail("no-existe").first())
+        assertNull(patients.observePatientDetail("no-existe", account(SeedIds.HECTOR)).first())
     }
 
     @Test
     fun `los contactos desactivados no aparecen en el expediente`() = runTest {
         patients.updatePatient(ana, patients.getPatientDraft(ana)!!.copy(phone = "8188889999"), BetaAccounts.PSYCHOLOGIST_ID)
 
-        val detail = patients.observePatientDetail(ana).first()!!
+        val detail = patients.observePatientDetail(ana, account(SeedIds.HECTOR)).first()!!
 
         assertEquals(setOf("8188889999", "ana.cavazos@example.org"), detail.contacts.map { it.value }.toSet())
     }
 
     @Test
     fun `el expediente se actualiza cuando se edita el paciente`() = runTest {
-        val seen = patients.observePatientDetail(ana).observeAround(
+        val seen = patients.observePatientDetail(ana, account(SeedIds.HECTOR)).observeAround(
             change = { patients.updatePatient(ana, patients.getPatientDraft(ana)!!.copy(municipality = "Guadalupe"), BetaAccounts.PSYCHOLOGIST_ID) },
             until = { it!!.patient.municipality == "Guadalupe" },
         )
@@ -549,4 +550,66 @@ class LocalPatientRepositoryTest : RepositoryTest() {
         assertEquals("Guadalupe", seen.last()!!.patient.municipality)
     }
 
+    // ---------------------------------------------------------------- visibilidad multidisciplinaria
+
+    @Test
+    fun `coordinacion de Psicologia ve el detalle de Psicologia y solo constancia de Nutricion`() = runTest {
+        val detail = patients.observePatientDetail(SeedIds.FERNANDA, account(SeedIds.CLAUDIA)).first()!!
+
+        assertEquals(setOf(ClinicalArea.PSYCHOLOGY), detail.viewableAreas)
+        assertEquals(listOf(ClinicalArea.PSYCHOLOGY), detail.assignments.map { it.area })
+        assertEquals("Rodrigo Villarreal", detail.assignments.single().professionalName)
+        assertTrue(detail.appointments.all { it.area == ClinicalArea.PSYCHOLOGY })
+        assertTrue(detail.encounters.all { it.area == ClinicalArea.PSYCHOLOGY })
+        assertEquals(listOf(ClinicalArea.NUTRITION), detail.restrictedAreas.map { it.area })
+        assertEquals(1, detail.restrictedAreas.single().encounterCount)
+        assertNotNull(detail.restrictedAreas.single().lastActivityAt)
+    }
+
+    @Test
+    fun `un profesional de otra area no obtiene profesional, citas ni encuentros de las areas ajenas`() = runTest {
+        val detail = patients.observePatientDetail(SeedIds.FERNANDA, account(SeedIds.PAOLA)).first()!!
+
+        assertEquals(setOf(ClinicalArea.NUTRITION), detail.viewableAreas)
+        val leaked = detail.assignments.map { it.professionalName } + detail.appointments.map { it.professionalName } +
+            detail.encounters.map { it.professionalName }
+        assertFalse(leaked.any { it.contains("Rodrigo") || it.contains("Mariana") })
+        assertEquals(listOf(ClinicalArea.PSYCHOLOGY), detail.restrictedAreas.map { it.area })
+    }
+
+    @Test
+    fun `administracion clinica ve las tres areas y el historial de asignaciones`() = runTest {
+        val detail = patients.observePatientDetail(SeedIds.FERNANDA, account(SeedIds.HECTOR)).first()!!
+
+        assertEquals(ClinicalArea.entries.toSet(), detail.viewableAreas)
+        assertTrue(detail.restrictedAreas.isEmpty())
+        // Fernanda tuvo a Mariana en Psicología (cerrada) y luego a Rodrigo; además Paola en Nutrición.
+        assertEquals(3, detail.assignmentHistory.size)
+        assertEquals(2, detail.assignments.size)
+    }
+
+    @Test
+    fun `el administrador del sistema ve los datos generales y ningun detalle clinico`() = runTest {
+        val detail = patients.observePatientDetail(SeedIds.FERNANDA, insertSystemAdmin()).first()!!
+
+        assertEquals("CRNL-000003", detail.patient.patientNumber)
+        assertTrue(detail.contacts.isNotEmpty())
+        assertTrue(detail.viewableAreas.isEmpty())
+        assertTrue(detail.assignments.isEmpty())
+        assertTrue(detail.appointments.isEmpty())
+        assertTrue(detail.encounters.isEmpty())
+        assertTrue(detail.assessments.isEmpty())
+    }
+
+    @Test
+    fun `una asignacion nueva aparece en el expediente sin recargar`() = runTest {
+        setPatientStatus(SeedIds.ANDRES, "ACTIVE")
+        val seen = patients.observePatientDetail(SeedIds.ANDRES, account(SeedIds.CLAUDIA)).observeAround(
+            change = { assignments.createInitialAssignment(SeedIds.ANDRES, ClinicalArea.PSYCHOLOGY, SeedIds.RODRIGO, null, SeedIds.CLAUDIA) },
+            until = { it!!.assignments.isNotEmpty() },
+        )
+
+        assertTrue(seen.first()!!.assignments.isEmpty())
+        assertEquals("Rodrigo Villarreal", seen.last()!!.assignments.single().professionalName)
+    }
 }

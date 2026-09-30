@@ -44,6 +44,8 @@ fun ClinicalTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: (@Composable () -> Unit)? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
 ) {
     val supporting = error ?: helper
     OutlinedTextField(
@@ -59,7 +61,8 @@ fun ClinicalTextField(
         // El error no depende solo del color: sin otro control al final, el campo muestra también un icono de aviso.
         trailingIcon = trailingIcon ?: error?.let { { Icon(imageVector = Icons.Filled.Warning, contentDescription = null) } },
         isError = error != null,
-        singleLine = true,
+        singleLine = singleLine,
+        minLines = minLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
@@ -128,7 +131,7 @@ fun DateOfBirthField(
 
 private const val DATE_DIGITS = 8
 
-private object DateMaskTransformation : VisualTransformation {
+internal object DateMaskTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val digits = text.text.take(DATE_DIGITS)
         val masked = buildString {

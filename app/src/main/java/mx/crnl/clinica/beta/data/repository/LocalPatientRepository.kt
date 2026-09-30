@@ -22,6 +22,7 @@ import mx.crnl.clinica.beta.data.local.entity.PatientEntity
 import mx.crnl.clinica.beta.data.local.mapper.personName
 import mx.crnl.clinica.beta.data.local.mapper.toDomain
 import mx.crnl.clinica.beta.data.local.mapper.toRecord
+import mx.crnl.clinica.beta.domain.clinical.PatientDetailAssembler
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 import mx.crnl.clinica.beta.domain.model.AssessmentStatus
 import mx.crnl.clinica.beta.domain.model.AssessmentSummary
@@ -33,7 +34,6 @@ import mx.crnl.clinica.beta.domain.model.EncounterStatus
 import mx.crnl.clinica.beta.domain.model.EncounterSummary
 import mx.crnl.clinica.beta.domain.model.EncounterType
 import mx.crnl.clinica.beta.domain.model.Patient
-import mx.crnl.clinica.beta.domain.model.PatientAssignment
 import mx.crnl.clinica.beta.domain.model.PatientDetail
 import mx.crnl.clinica.beta.domain.model.PatientDraft
 import mx.crnl.clinica.beta.domain.model.PatientRecord
@@ -42,6 +42,7 @@ import mx.crnl.clinica.beta.domain.model.PatientSummary
 import mx.crnl.clinica.beta.domain.model.PopulationType
 import mx.crnl.clinica.beta.domain.model.RecordStatus
 import mx.crnl.clinica.beta.domain.model.Sex
+import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.patient.DuplicateDetector
 import mx.crnl.clinica.beta.domain.patient.PatientField
 import mx.crnl.clinica.beta.domain.patient.PatientNumber
@@ -60,6 +61,7 @@ class LocalPatientRepository(
     private val patientDao = database.patientDao()
     private val detailDao = database.patientDetailDao()
     private val appointmentDao = database.appointmentDao()
+    private val assignmentDao = database.assignmentDao()
 
     override fun observePatients(query: String, filter: PatientFilter): Flow<List<PatientSummary>> =
         patientDao.observeAggregates()
@@ -73,14 +75,14 @@ class LocalPatientRepository(
 
     override suspend fun getPatient(patientId: String): Patient? = patientDao.getById(patientId)?.toDomain()
 
-    override fun observePatientDetail(patientId: String): Flow<PatientDetail?> = combine(
+    override fun observePatientDetail(patientId: String, viewer: UserAccount): Flow<PatientDetail?> = combine(
         patientDao.observeWithContacts(patientId),
-        detailDao.observeActiveAssignments(patientId),
+        assignmentDao.observeRows(patientId),
         appointmentDao.observeRowsByPatient(patientId),
         detailDao.observeEncounters(patientId),
         detailDao.observeAssessments(patientId),
     ) { patient, assignments, appointments, encounters, assessments ->
-        patient?.toDetail(assignments, appointments.map { it.toDomain() }, encounters, assessments)
+        patient?.toDetail(viewer, assignments, appointments.map { it.toDomain() }, encounters, assessments)
     }.flowOn(Dispatchers.Default)
 
     override suspend fun getPatientDraft(patientId: String): PatientDraft? {
@@ -240,12 +242,15 @@ class LocalPatientRepository(
         email = contacts.firstOrNull { it.contactType == ContactType.EMAIL.name }?.contactValue,
     )
 
+    // Lo clínico se recorta según quién consulta; ver PatientDetailAssembler.
     private fun PatientWithContacts.toDetail(
+        viewer: UserAccount,
         assignments: List<AssignmentRow>,
         appointments: List<AppointmentSummary>,
         encounters: List<EncounterRow>,
         assessments: List<AssessmentRow>,
-    ) = PatientDetail(
+    ) = PatientDetailAssembler.assemble(
+        viewer = viewer,
         patient = patient.toDomain(),
         contacts = contacts
             .filter { it.status == RecordStatus.ACTIVE.name }
@@ -256,15 +261,7 @@ class LocalPatientRepository(
                     .thenBy { it.contactId },
             )
             .map { it.toDomain() },
-        assignments = assignments
-            .map {
-                PatientAssignment(
-                    area = ClinicalArea.valueOf(it.areaCode),
-                    professionalName = personName(it.professionalFirstName, it.professionalPaternalSurname, null),
-                    since = Instant.ofEpochMilli(it.startAt),
-                )
-            }
-            .sortedBy { it.area },
+        assignments = assignments.map { it.toDomain() },
         appointments = appointments,
         encounters = encounters.map {
             EncounterSummary(
@@ -274,6 +271,7 @@ class LocalPatientRepository(
                 type = EncounterType.valueOf(it.encounterTypeCode),
                 status = EncounterStatus.valueOf(it.status),
                 eventAt = Instant.ofEpochMilli(it.eventAt),
+                appointmentId = it.appointmentId,
             )
         },
         assessments = assessments.map {

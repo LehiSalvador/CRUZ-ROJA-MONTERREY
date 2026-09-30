@@ -48,10 +48,19 @@ import mx.crnl.clinica.beta.core.navigation.AppRoute
 import mx.crnl.clinica.beta.core.navigation.TopLevelDestination
 import mx.crnl.clinica.beta.core.ui.theme.isCompactLandscape
 import mx.crnl.clinica.beta.feature.appointments.AppointmentsRoute
+import mx.crnl.clinica.beta.feature.appointments.detail.AppointmentDetailActions
+import mx.crnl.clinica.beta.feature.appointments.detail.AppointmentDetailRoute
+import mx.crnl.clinica.beta.feature.appointments.form.EditAppointmentRoute
+import mx.crnl.clinica.beta.feature.appointments.form.NewAppointmentRoute
+import mx.crnl.clinica.beta.feature.appointments.form.RescheduleAppointmentRoute
+import mx.crnl.clinica.beta.feature.assignments.AssignProfessionalRoute
+import mx.crnl.clinica.beta.feature.encounters.EncounterDetailRoute
+import mx.crnl.clinica.beta.feature.encounters.NewEncounterRoute
 import mx.crnl.clinica.beta.feature.home.HomeActions
 import mx.crnl.clinica.beta.feature.home.HomeRoute
 import mx.crnl.clinica.beta.feature.patients.PatientsRoute
 import mx.crnl.clinica.beta.feature.patients.create.NewPatientRoute
+import mx.crnl.clinica.beta.feature.patients.detail.PatientDetailActions
 import mx.crnl.clinica.beta.feature.patients.detail.PatientDetailRoute
 import mx.crnl.clinica.beta.feature.patients.edit.EditPatientRoute
 import mx.crnl.clinica.beta.feature.profile.ProfileRoute
@@ -82,9 +91,7 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
     }
 
     // Los formularios ocupan la pantalla completa: sin barra inferior no se abandonan por accidente.
-    val showBottomBar = currentDestination?.let {
-        !it.hasRoute(AppRoute.NewPatient::class) && !it.hasRoute(AppRoute.EditPatient::class)
-    } ?: true
+    val showBottomBar = currentDestination?.let { destination -> FORM_ROUTES.none { destination.hasRoute(it) } } ?: true
 
     // Un aviso que sigue en pantalla quedaría sobre las acciones fijas del formulario y las dejaría sin respuesta.
     LaunchedEffect(showBottomBar) {
@@ -125,6 +132,8 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                             onOpenPatients = { navController.navigateToTopLevel(TopLevelDestination.PATIENTS) },
                             onOpenPatient = { patientId -> navController.openPatientsTab(AppRoute.PatientDetail(patientId)) },
                             onOpenAppointments = { navController.navigateToTopLevel(TopLevelDestination.APPOINTMENTS) },
+                            onOpenAppointment = { appointmentId -> navController.openAppointmentsTab(AppRoute.AppointmentDetail(appointmentId)) },
+                            onNewAppointment = { navController.openAppointmentsTab(AppRoute.NewAppointment()) },
                             onOpenRequests = { navController.navigateToTopLevel(TopLevelDestination.REQUESTS) },
                         ),
                     )
@@ -140,8 +149,52 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                     composable<AppRoute.PatientDetail> {
                         PatientDetailRoute(
                             factory = factory,
+                            actions = PatientDetailActions(
+                                onNavigateUp = { navController.popBackStack() },
+                                onEdit = { patientId -> navController.navigate(AppRoute.EditPatient(patientId)) },
+                                onNewAppointment = { patientId, area ->
+                                    navController.navigate(AppRoute.NewAppointment(patientId, area?.name))
+                                },
+                                onAssignProfessional = { patientId, area ->
+                                    navController.navigate(AppRoute.AssignProfessional(patientId, area.name))
+                                },
+                                onRegisterEncounter = { patientId, area ->
+                                    navController.navigate(AppRoute.NewEncounter(patientId, area.name))
+                                },
+                                onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
+                                onOpenEncounter = { encounterId -> navController.navigate(AppRoute.EncounterDetail(encounterId)) },
+                            ),
+                        )
+                    }
+                    composable<AppRoute.AssignProfessional> {
+                        AssignProfessionalRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onAssigned = {
+                                announce(resources.getString(R.string.assign_done_message))
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+                    composable<AppRoute.NewEncounter> {
+                        NewEncounterRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onSaved = { patientId, area ->
+                                announce(resources.getString(R.string.encounter_saved_message))
+                                // Se sale del formulario y se abre el expediente en la línea de atención del área.
+                                navController.popBackStack()
+                                navController.navigate(AppRoute.PatientDetail(patientId, area.name)) {
+                                    popUpTo<AppRoute.PatientDetail> { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+                    composable<AppRoute.EncounterDetail> {
+                        EncounterDetailRoute(
+                            factory = factory,
                             onNavigateUp = { navController.popBackStack() },
-                            onEdit = { patientId -> navController.navigate(AppRoute.EditPatient(patientId)) },
+                            onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
                         )
                     }
                     composable<AppRoute.NewPatient> {
@@ -169,7 +222,67 @@ fun MainShell(factory: ViewModelProvider.Factory, onSessionEnded: () -> Unit) {
                         )
                     }
                 }
-                composable<AppRoute.Appointments> { AppointmentsRoute(factory) }
+                navigation<AppRoute.AppointmentsGraph>(startDestination = AppRoute.Appointments) {
+                    composable<AppRoute.Appointments> {
+                        AppointmentsRoute(
+                            factory = factory,
+                            onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
+                            onNewAppointment = { navController.navigate(AppRoute.NewAppointment()) },
+                        )
+                    }
+                    composable<AppRoute.AppointmentDetail> {
+                        AppointmentDetailRoute(
+                            factory = factory,
+                            actions = AppointmentDetailActions(
+                                onNavigateUp = { navController.popBackStack() },
+                                onOpenPatient = { patientId -> navController.navigate(AppRoute.PatientDetail(patientId)) },
+                                onEdit = { appointmentId -> navController.navigate(AppRoute.EditAppointment(appointmentId)) },
+                                onReschedule = { appointmentId -> navController.navigate(AppRoute.RescheduleAppointment(appointmentId)) },
+                                onRegisterEncounter = { patientId, area, appointmentId ->
+                                    navController.navigate(AppRoute.NewEncounter(patientId, area.name, appointmentId))
+                                },
+                                onOpenEncounter = { encounterId -> navController.navigate(AppRoute.EncounterDetail(encounterId)) },
+                            ),
+                        )
+                    }
+                    composable<AppRoute.NewAppointment> {
+                        NewAppointmentRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onCreated = { appointmentId ->
+                                announce(resources.getString(R.string.appointment_created_message))
+                                navController.navigate(AppRoute.AppointmentDetail(appointmentId)) {
+                                    popUpTo<AppRoute.NewAppointment> { inclusive = true }
+                                }
+                            },
+                            onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
+                            onAssignProfessional = { patientId, area ->
+                                navController.navigate(AppRoute.AssignProfessional(patientId, area.name))
+                            },
+                        )
+                    }
+                    composable<AppRoute.EditAppointment> {
+                        EditAppointmentRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onSaved = {
+                                announce(resources.getString(R.string.edit_saved_message))
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+                    composable<AppRoute.RescheduleAppointment> {
+                        RescheduleAppointmentRoute(
+                            factory = factory,
+                            onClose = { navController.popBackStack() },
+                            onSaved = {
+                                announce(resources.getString(R.string.appointment_rescheduled_message))
+                                navController.popBackStack()
+                            },
+                            onOpenAppointment = { appointmentId -> navController.navigate(AppRoute.AppointmentDetail(appointmentId)) },
+                        )
+                    }
+                }
                 composable<AppRoute.Requests> { RequestsScreen() }
                 composable<AppRoute.Profile> { ProfileRoute(factory) }
             }
@@ -195,6 +308,26 @@ private fun NavController.openPatientsTab(destination: AppRoute) {
     }
     navigate(destination)
 }
+
+/** Igual que [openPatientsTab] para la pestaña Citas: Atrás vuelve a la agenda. */
+private fun NavController.openAppointmentsTab(destination: AppRoute) {
+    navigate(AppRoute.AppointmentsGraph) {
+        popUpTo(graph.findStartDestination().id)
+        launchSingleTop = true
+    }
+    navigate(destination)
+}
+
+// Pantallas de formulario: ocupan todo el alto y ocultan la barra inferior para no abandonarse por accidente.
+private val FORM_ROUTES = listOf(
+    AppRoute.NewPatient::class,
+    AppRoute.EditPatient::class,
+    AppRoute.NewAppointment::class,
+    AppRoute.EditAppointment::class,
+    AppRoute.RescheduleAppointment::class,
+    AppRoute.AssignProfessional::class,
+    AppRoute.NewEncounter::class,
+)
 
 @Composable
 private fun MainNavigationBar(currentDestination: NavDestination?, onNavigate: (TopLevelDestination) -> Unit) {

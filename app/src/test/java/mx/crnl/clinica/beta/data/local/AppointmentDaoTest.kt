@@ -69,6 +69,40 @@ class AppointmentDaoTest : DatabaseTest() {
     }
 
     @Test
+    fun `encuentra las citas no canceladas del paciente o del profesional que se solapan con un horario`() = runTest {
+        db.seedDao().insertAll(
+            records(
+                users = listOf(userEntity(id = "user-2", firstName = "Otro", paternalSurname = "Profesional")),
+                patients = listOf(patientEntity(id = "patient-2", number = "CRNL-000002", firstName = "Segundo")),
+            ),
+        )
+        val base = TestNow.toInstant()
+        dao.insert(appointmentEntity(id = "mismo-pro", patientId = "patient-2", professionalId = "user-1", start = base, minutes = 50))
+        dao.insert(appointmentEntity(id = "mismo-paciente", patientId = "patient-1", professionalId = "user-2", start = base.plusSeconds(1_800), minutes = 50))
+        dao.insert(appointmentEntity(id = "cancelada", patientId = "patient-1", professionalId = "user-1", start = base, minutes = 50, status = "CANCELLED"))
+        dao.insert(appointmentEntity(id = "contigua", patientId = "patient-1", professionalId = "user-1", start = base.plusSeconds(3_000), minutes = 50))
+        dao.insert(appointmentEntity(id = "ajena", patientId = "patient-2", professionalId = "user-2", start = base, minutes = 50))
+
+        val found = dao.findOverlapping("patient-1", "user-1", base.toEpochMilli(), base.plusSeconds(3_000).toEpochMilli())
+
+        assertEquals(setOf("mismo-pro", "mismo-paciente"), found.map { it.appointmentId }.toSet())
+    }
+
+    @Test
+    fun `actualiza una cita completa por su id`() = runTest {
+        dao.insert(appointmentEntity())
+        val current = dao.getById("appointment-1")!!
+
+        dao.update(current.copy(location = "Sala 9", status = "RESCHEDULED", updatedAt = 9_000L))
+
+        val stored = dao.getById("appointment-1")!!
+        assertEquals("Sala 9", stored.location)
+        assertEquals("RESCHEDULED", stored.status)
+        assertEquals(current.createdAt, stored.createdAt)
+        assertEquals(1, count("appointments"))
+    }
+
+    @Test
     fun `una cita no puede referenciar a un paciente inexistente`() = runTest {
         assertFailsWithType<SQLiteConstraintException> {
             dao.insert(appointmentEntity(patientId = "fantasma"))

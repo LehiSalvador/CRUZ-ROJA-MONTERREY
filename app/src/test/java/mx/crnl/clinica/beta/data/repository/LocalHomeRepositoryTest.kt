@@ -3,8 +3,12 @@ package mx.crnl.clinica.beta.data.repository
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import mx.crnl.clinica.beta.domain.appointment.AppointmentAction
 import mx.crnl.clinica.beta.domain.home.HomeSummary
 import mx.crnl.clinica.beta.domain.home.PatientMetric
+import mx.crnl.clinica.beta.domain.model.AppointmentDraft
+import mx.crnl.clinica.beta.domain.model.AppointmentModality
+import mx.crnl.clinica.beta.domain.model.AppointmentStatus
 import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.model.UserRole
@@ -15,6 +19,8 @@ import mx.crnl.clinica.beta.testing.appointmentEntity
 import mx.crnl.clinica.beta.testing.fixedClock
 import mx.crnl.clinica.beta.testing.observeAround
 import mx.crnl.clinica.beta.testing.patientDraft
+import mx.crnl.clinica.beta.testing.success
+import mx.crnl.clinica.beta.testing.testInstant
 import mx.crnl.clinica.beta.testing.userAccount
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -47,7 +53,12 @@ class LocalHomeRepositoryTest : RepositoryTest() {
         val summary = summaryFor(rodrigo)
 
         assertEquals(3, summary.patientCount)
-        assertEquals(listOf("e0000000-0000-4000-8000-000000000007"), summary.upcomingAppointments.map { it.appointmentId })
+        // La cita en curso de hoy y la reprogramada de dentro de una semana (reprogramada sigue por ocurrir).
+        assertEquals(
+            listOf("e0000000-0000-4000-8000-000000000007", "e0000000-0000-4000-8000-00000000000b"),
+            summary.upcomingAppointments.map { it.appointmentId },
+        )
+        assertEquals(1, summary.todayAppointmentCount)
     }
 
     @Test
@@ -56,7 +67,8 @@ class LocalHomeRepositoryTest : RepositoryTest() {
 
         assertEquals(PatientMetric.AREA_PATIENTS, summary.patientMetric)
         assertEquals(4, summary.patientCount)
-        assertEquals(2, summary.upcomingAppointmentCount)
+        assertEquals(3, summary.upcomingAppointmentCount)
+        assertEquals(1, summary.todayAppointmentCount)
     }
 
     @Test
@@ -65,8 +77,45 @@ class LocalHomeRepositoryTest : RepositoryTest() {
 
         assertEquals(PatientMetric.ALL_ACTIVE_PATIENTS, summary.patientMetric)
         assertEquals(7, summary.patientCount)
-        assertEquals(5, summary.upcomingAppointmentCount)
+        assertEquals(6, summary.upcomingAppointmentCount)
         assertEquals(3, summary.upcomingAppointments.size)
+        assertEquals(2, summary.todayAppointmentCount)
+    }
+
+    @Test
+    fun `el administrador del sistema no ve citas en Inicio`() = runTest {
+        val summary = summaryFor(insertSystemAdmin())
+
+        assertEquals(0, summary.upcomingAppointmentCount)
+        assertEquals(0, summary.todayAppointmentCount)
+        assertEquals(emptyList<Any>(), summary.upcomingAppointments)
+    }
+
+    @Test
+    fun `crear y cancelar una cita actualiza el resumen del profesional sin reiniciar`() = runTest {
+        val draft = AppointmentDraft(
+            "b0000000-0000-4000-8000-000000000001", ClinicalArea.PSYCHOLOGY, BetaAccounts.PSYCHOLOGIST_ID,
+            testInstant(0, 15), 50, AppointmentModality.IN_PERSON, "Consultorio 3", null, null,
+        )
+        var createdId = ""
+        val afterCreate = home.observeSummary(mariana).observeAround(
+            change = { createdId = appointments.createAppointment(draft, BetaAccounts.COORDINATOR_ID).success().appointmentId },
+            until = { it.upcomingAppointmentCount == 2 && it.todayAppointmentCount == 1 },
+        )
+        assertEquals(1, afterCreate.first().upcomingAppointmentCount)
+        assertEquals(0, afterCreate.first().todayAppointmentCount)
+
+        val afterCancel = home.observeSummary(mariana).observeAround(
+            change = {
+                appointments.applyAction(
+                    createdId, AppointmentAction.CANCEL,
+                    AppointmentStatus.SCHEDULED, null, BetaAccounts.COORDINATOR_ID,
+                )
+            },
+            until = { it.upcomingAppointmentCount == 1 && it.todayAppointmentCount == 0 },
+        )
+        assertEquals(2, afterCancel.first().upcomingAppointmentCount)
+        assertEquals(1, afterCancel.last().upcomingAppointmentCount)
     }
 
     @Test

@@ -8,8 +8,10 @@ import mx.crnl.clinica.beta.data.local.dao.AccessRequestDao
 import mx.crnl.clinica.beta.data.local.dao.AppointmentDao
 import mx.crnl.clinica.beta.data.local.dao.AuditDao
 import mx.crnl.clinica.beta.data.local.dao.CredentialDao
+import mx.crnl.clinica.beta.data.local.dao.EncounterDao
 import mx.crnl.clinica.beta.data.local.dao.PatientDao
 import mx.crnl.clinica.beta.data.local.dao.PatientDetailDao
+import mx.crnl.clinica.beta.data.local.dao.ProfessionalAssignmentDao
 import mx.crnl.clinica.beta.data.local.dao.SeedDao
 import mx.crnl.clinica.beta.data.local.dao.UserDao
 import mx.crnl.clinica.beta.data.local.entity.AccessRequestEntity
@@ -55,6 +57,10 @@ abstract class ClinicalDatabase : RoomDatabase() {
     abstract fun patientDetailDao(): PatientDetailDao
 
     abstract fun appointmentDao(): AppointmentDao
+
+    abstract fun assignmentDao(): ProfessionalAssignmentDao
+
+    abstract fun encounterDao(): EncounterDao
 
     abstract fun accessRequestDao(): AccessRequestDao
 

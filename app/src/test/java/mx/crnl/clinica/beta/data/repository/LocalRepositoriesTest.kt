@@ -11,6 +11,7 @@ import mx.crnl.clinica.beta.domain.model.PatientStatus
 import mx.crnl.clinica.beta.domain.model.PopulationType
 import mx.crnl.clinica.beta.domain.model.Sex
 import mx.crnl.clinica.beta.testing.RepositoryTest
+import mx.crnl.clinica.beta.testing.SeedIds
 import mx.crnl.clinica.beta.testing.TestNow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -63,7 +64,7 @@ class LocalRepositoriesTest : RepositoryTest() {
 
     @Test
     fun `lista las citas cronologicamente con los nombres resueltos`() = runTest {
-        val list = appointments.observeAppointments().first()
+        val list = appointments.observeAppointments(account(SeedIds.HECTOR)).first()
 
         assertEquals(12, list.size)
         assertEquals(list.sortedBy { it.start }, list)

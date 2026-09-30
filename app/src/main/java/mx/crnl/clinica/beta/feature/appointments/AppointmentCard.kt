@@ -21,7 +21,7 @@ import mx.crnl.clinica.beta.core.util.DateTimeFormats
 import mx.crnl.clinica.beta.domain.model.AppointmentModality
 import mx.crnl.clinica.beta.domain.model.AppointmentSummary
 
-/** Cita de solo lectura. En el expediente el paciente ya está a la vista, por eso puede omitirse. */
+/** Cita de una lista: fecha, hora, estado, paciente con folio, área, profesional y modalidad. En el expediente el paciente ya está a la vista, por eso puede omitirse. */
 @Composable
 fun AppointmentCard(
     item: AppointmentSummary,
@@ -46,6 +46,11 @@ fun AppointmentCard(
             }
             if (showPatient) {
                 Text(text = item.patientName, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = item.patientNumber,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Text(
                 text = "${stringResource(item.area.labelRes())} · ${item.professionalName}",

@@ -4,13 +4,6 @@ import androidx.room.Dao
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-data class AssignmentRow(
-    val areaCode: String,
-    val professionalFirstName: String,
-    val professionalPaternalSurname: String,
-    val startAt: Long,
-)
-
 data class EncounterRow(
     val encounterId: String,
     val areaCode: String,
@@ -19,6 +12,7 @@ data class EncounterRow(
     val encounterTypeCode: String,
     val status: String,
     val eventAt: Long,
+    val appointmentId: String?,
 )
 
 data class AssessmentRow(
@@ -38,27 +32,14 @@ data class AssessmentRow(
 interface PatientDetailDao {
     @Query(
         """
-        SELECT a.areaCode AS areaCode,
-               u.firstName AS professionalFirstName,
-               u.paternalSurname AS professionalPaternalSurname,
-               a.startAt AS startAt
-        FROM professional_assignments a
-        JOIN demo_users u ON u.userId = a.professionalId
-        WHERE a.patientId = :patientId AND a.status = 'ACTIVE'
-        ORDER BY a.areaCode
-        """,
-    )
-    fun observeActiveAssignments(patientId: String): Flow<List<AssignmentRow>>
-
-    @Query(
-        """
         SELECT e.encounterId AS encounterId,
                e.areaCode AS areaCode,
                u.firstName AS professionalFirstName,
                u.paternalSurname AS professionalPaternalSurname,
                e.encounterTypeCode AS encounterTypeCode,
                e.status AS status,
-               e.eventAt AS eventAt
+               e.eventAt AS eventAt,
+               e.appointmentId AS appointmentId
         FROM clinical_encounters e
         JOIN demo_users u ON u.userId = e.professionalId
         WHERE e.patientId = :patientId

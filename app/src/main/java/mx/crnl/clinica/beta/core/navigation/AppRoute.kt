@@ -41,8 +41,9 @@ sealed interface AppRoute {
     @Serializable
     data object Patients : AppRoute
 
+    /** [area] (código de `ClinicalArea`) abre el expediente en la pestaña de esa área. */
     @Serializable
-    data class PatientDetail(val patientId: String) : AppRoute
+    data class PatientDetail(val patientId: String, val area: String? = null) : AppRoute
 
     @Serializable
     data object NewPatient : AppRoute
@@ -50,8 +51,34 @@ sealed interface AppRoute {
     @Serializable
     data class EditPatient(val patientId: String) : AppRoute
 
+    /** Grafo de la pestaña Citas: agenda, detalle y formularios de cita. */
+    @Serializable
+    data object AppointmentsGraph : AppRoute
+
     @Serializable
     data object Appointments : AppRoute
+
+    @Serializable
+    data class AppointmentDetail(val appointmentId: String) : AppRoute
+
+    /** [patientId] y [area] (código de `ClinicalArea`) preseleccionan el paciente y el área al abrir desde el expediente. */
+    @Serializable
+    data class NewAppointment(val patientId: String? = null, val area: String? = null) : AppRoute
+
+    @Serializable
+    data class EditAppointment(val appointmentId: String) : AppRoute
+
+    @Serializable
+    data class RescheduleAppointment(val appointmentId: String) : AppRoute
+
+    @Serializable
+    data class AssignProfessional(val patientId: String, val area: String) : AppRoute
+
+    @Serializable
+    data class NewEncounter(val patientId: String, val area: String, val appointmentId: String? = null) : AppRoute
+
+    @Serializable
+    data class EncounterDetail(val encounterId: String) : AppRoute
 
     @Serializable
     data object Requests : AppRoute
@@ -69,7 +96,7 @@ enum class TopLevelDestination(
 ) {
     HOME(AppRoute.Home, R.string.nav_home, Icons.Outlined.Home, Icons.Filled.Home),
     PATIENTS(AppRoute.PatientsGraph, R.string.nav_patients, Icons.Outlined.Person, Icons.Filled.Person),
-    APPOINTMENTS(AppRoute.Appointments, R.string.nav_appointments, Icons.Outlined.DateRange, Icons.Filled.DateRange),
+    APPOINTMENTS(AppRoute.AppointmentsGraph, R.string.nav_appointments, Icons.Outlined.DateRange, Icons.Filled.DateRange),
     REQUESTS(AppRoute.Requests, R.string.nav_requests, Icons.Outlined.Email, Icons.Filled.Email),
     PROFILE(AppRoute.Profile, R.string.nav_profile, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
 }

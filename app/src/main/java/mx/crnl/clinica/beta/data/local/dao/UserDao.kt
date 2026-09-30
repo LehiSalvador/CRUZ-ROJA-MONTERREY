@@ -17,6 +17,10 @@ interface UserDao {
     @Query("SELECT * FROM demo_users WHERE userId = :userId")
     fun observeById(userId: String): Flow<DemoUserEntity?>
 
+    /** Cuentas activas con rol de profesional en el área; el orden por apellido lo aplica quien las presenta. */
+    @Query("SELECT * FROM demo_users WHERE roleCode = 'PROFESSIONAL' AND areaCode = :areaCode AND status = 'ACTIVE'")
+    suspend fun listActiveProfessionals(areaCode: String): List<DemoUserEntity>
+
     @Insert
     suspend fun insert(user: DemoUserEntity)
 }

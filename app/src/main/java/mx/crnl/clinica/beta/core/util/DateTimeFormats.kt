@@ -17,6 +17,8 @@ object DateTimeFormats {
     /** Fecha de nacimiento en la forma en que se captura y se busca: dd/mm/aaaa. */
     fun birthDate(date: LocalDate): String = birthDateFormatter.format(date)
 
+    fun time(instant: Instant): String = timeFormatter.format(instant.atZone(ClinicTime.zone))
+
     fun timeRange(start: Instant, end: Instant): String =
         "${timeFormatter.format(start.atZone(ClinicTime.zone))}–${timeFormatter.format(end.atZone(ClinicTime.zone))}"
 }

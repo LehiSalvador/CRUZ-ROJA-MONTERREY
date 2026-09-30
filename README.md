@@ -1,6 +1,6 @@
 # Plataforma Clínica CRNL — Beta Android
 
-Aplicación Android nativa de la plataforma clínica de Cruz Roja Nuevo León (`0.1.0-beta`). Incluye acceso local con cuentas ficticias, solicitud de cuenta, Inicio con indicadores reales y el núcleo de pacientes: listado y búsqueda, alta guiada con detección de posibles duplicados, expediente de lectura y edición de datos generales y de contacto.
+Aplicación Android nativa de la plataforma clínica de Cruz Roja Nuevo León (`0.1.0-beta`). Incluye acceso local con cuentas ficticias, solicitud de cuenta, Inicio con indicadores reales, el núcleo de pacientes (listado y búsqueda, alta guiada con detección de posibles duplicados, edición de datos generales y de contacto) y el flujo operativo de atención: asignación inicial de profesional por área, agenda de citas, contacto por WhatsApp (solo enlace externo), registro base de atención y línea de atención por área en el expediente.
 
 ## Stack
 
@@ -54,8 +54,12 @@ data/
 domain/
   model/               modelos y catálogos sin dependencias de Android
   patient/ account/ home/ text/   reglas puras: búsqueda, duplicados, folio, validaciones, indicadores de Inicio
-  repository/          contratos (Auth, Session, Patient, Appointment, Home)
-feature/               splash, auth, session, home, patients (listado, expediente, alta, edición), appointments, requests, profile
+  appointment/         máquina de estados, conflictos de horario, reglas y agenda de citas
+  access/              política de acceso de la Beta (roles y áreas)
+  clinical/            expediente visible por rol, capacidades por área, reglas del encuentro
+  contact/             texto neutro y enlace de WhatsApp
+  repository/          contratos (Auth, Session, Patient, Appointment, ProfessionalAssignment, Encounter, Home)
+feature/               splash, auth, session, home, patients (listado, expediente, alta, edición), appointments (agenda, detalle, formularios), assignments, encounters, requests, profile
 ```
 
 - La UI depende solo de los contratos de `domain/repository`. Sustituir la fuente local por una API o Supabase consiste en implementar esos contratos y cambiar el ensamblado en `app/AppContainer.kt`.
@@ -76,6 +80,29 @@ feature/               splash, auth, session, home, patients (listado, expedient
 - Antes de crear (y al editar identidad o contacto) se buscan posibles duplicados por correo, teléfono y nombre con fecha de nacimiento. Es una advertencia con sus razones, nunca un bloqueo.
 - La búsqueda cubre folio, nombre, apellidos, teléfono, correo y fecha de nacimiento, sin distinguir mayúsculas ni acentos.
 - Alta, edición y consulta del expediente quedan en la bitácora (`audit_entries`) junto con inicio y cierre de sesión y solicitudes de cuenta, sin contraseñas ni datos clínicos.
+
+## Asignación, citas y atención base
+
+- **Asignación inicial**: desde el expediente, en la pestaña del área, quien tiene permiso elige un profesional activo del área y, si quiere, una razón administrativa. Solo existe la asignación inicial: si el área ya tiene profesional vigente no se ofrece cambiarlo (el cambio pertenece a un módulo posterior) y el historial nunca se sobrescribe. Cada asignación guarda quién la hizo.
+- **Citas**: agenda con filtros *Próximas / Hoy / Historial*, detalle, alta, edición de datos administrativos y reprogramación. Una cita es una entidad administrativa distinta del encuentro clínico; no se borra (cancelar cambia su estado) y no captura contenido clínico. La cita se agenda con el profesional asignado al paciente en el área; si no lo hay, el formulario lo indica y ofrece ir a asignarlo, pero nunca crea una asignación por su cuenta. Los instantes se guardan en UTC y se muestran en hora de Monterrey. Se bloquea guardar una cita que se solapa con otra del mismo profesional o del mismo paciente (se muestra con cuál choca); las canceladas no ocupan horario.
+- **Estados**: `AppointmentStatePolicy` es una regla operativa y reversible de la Beta, no la matriz institucional final. Realizada, no asistió y cancelada son terminales. Desviación de la matriz recomendada: una cita ya reprogramada puede reprogramarse de nuevo. Marcar realizada no crea ningún encuentro; el repositorio rechaza cualquier transición que la política no permita, aunque la interfaz oculte el botón.
+- **WhatsApp**: solo un enlace externo (`whatsapp://send`) que abre la aplicación de WhatsApp con un texto neutro (nombre, fecha y hora; sin área, folio, profesional ni datos clínicos). No hay cliente HTTP, no hay permiso de Internet, no se envía nada automáticamente y no se comprueba si el número tiene WhatsApp. Sin la aplicación instalada se muestra un aviso y no hay constancia. La bitácora solo registra que se abrió (sin teléfono ni texto).
+- **Atención base**: `ClinicalEncounter` registra tipo (Inicial, Seguimiento, Intervención, Evaluación, Cierre, Otro), cuándo ocurrió (`eventAt`), cuándo se capturó (`recordedAt`), profesional, área y, si aplica, la cita relacionada. No hay campos clínicos: los formularios oficiales de cada área todavía no existen. Un encuentro nace completo y es de solo lectura; un doble toque no crea dos idénticos. Se registra desde el detalle de una cita realizada o desde la pestaña del área.
+- **Línea de atención por área**: cada pestaña de área muestra el profesional vigente, el historial de asignaciones, la próxima cita, las citas recientes y la línea de atención (encuentros por `eventAt`, del más reciente al más antiguo).
+- **Visibilidad entre áreas**: de un área que la persona no puede ver solo se muestra que el paciente cuenta con atención registrada (con conteo y última fecha): nunca profesional, tipo, citas ni evaluaciones. El recorte lo hace el dominio (`PatientDetailAssembler`) antes de que llegue a las pantallas.
+
+### Política de acceso de la Beta
+
+`BetaClinicalAccessPolicy` es una defensa local, pequeña y reemplazable para las operaciones nuevas. **No es la matriz institucional final ni seguridad de producción** (no hay backend que la respalde).
+
+| Rol | Ve el detalle de | Asigna | Gestiona citas | Registra atención |
+| --- | --- | --- | --- | --- |
+| Profesional | su área | no | solo en las que es el profesional | de pacientes asignados a él, en su área |
+| Coordinación de área | su área | su área | su área | su área (atribuida al profesional asignado) |
+| Administración clínica | las tres áreas | las tres áreas | las tres áreas | las tres áreas |
+| Administración del sistema | ninguna | no | no | no |
+
+Los repositorios vuelven a comprobar la política contra la cuenta vigente al escribir; las pantallas solo ocultan lo que no corresponde.
 
 ## Datos de la Beta
 

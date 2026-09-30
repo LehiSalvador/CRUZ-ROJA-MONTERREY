@@ -6,6 +6,7 @@ import mx.crnl.clinica.beta.domain.model.Patient
 import mx.crnl.clinica.beta.domain.model.PatientDetail
 import mx.crnl.clinica.beta.domain.model.PatientDraft
 import mx.crnl.clinica.beta.domain.model.PatientSummary
+import mx.crnl.clinica.beta.domain.model.UserAccount
 
 sealed interface PatientFilter {
     data object All : PatientFilter
@@ -22,8 +23,11 @@ interface PatientRepository {
 
     suspend fun getPatient(patientId: String): Patient?
 
-    /** Expediente de lectura; emite nulo si el paciente no existe. */
-    fun observePatientDetail(patientId: String): Flow<PatientDetail?>
+    /**
+     * Expediente de lectura tal como lo puede ver [viewer]: datos generales para todos y el detalle clínico solo de las
+     * áreas que su rol permite (de las demás, únicamente que hay atención). Emite nulo si el paciente no existe.
+     */
+    fun observePatientDetail(patientId: String, viewer: UserAccount): Flow<PatientDetail?>
 
     /** Datos editables con los contactos principales vigentes, o nulo si no existe. */
     suspend fun getPatientDraft(patientId: String): PatientDraft?

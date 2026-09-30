@@ -23,32 +23,65 @@ import kotlinx.coroutines.launch
 import mx.crnl.clinica.beta.core.navigation.AppRoute
 import mx.crnl.clinica.beta.core.ui.state.UiState
 import mx.crnl.clinica.beta.core.util.runCatchingCancellable
+import mx.crnl.clinica.beta.domain.clinical.AreaCapabilities
+import mx.crnl.clinica.beta.domain.clinical.AreaCapabilitiesResolver
+import mx.crnl.clinica.beta.domain.model.ClinicalArea
 import mx.crnl.clinica.beta.domain.model.PatientDetail
+import mx.crnl.clinica.beta.domain.model.UserAccount
 import mx.crnl.clinica.beta.domain.repository.AuthRepository
 import mx.crnl.clinica.beta.domain.repository.PatientRepository
 
-data class PatientDetailContent(val detail: PatientDetail, val today: LocalDate, val now: Instant)
+/**
+ * El expediente tal como lo ve [viewer] (ya recortado por el repositorio) y lo que puede hacer en cada área.
+ * [initialArea] es el área cuya pestaña se abre primero, si la ruta la indicó.
+ */
+data class PatientDetailContent(
+    val detail: PatientDetail,
+    val today: LocalDate,
+    val now: Instant,
+    val viewer: UserAccount,
+    val initialArea: ClinicalArea? = null,
+) {
+    fun capabilities(area: ClinicalArea): AreaCapabilities =
+        AreaCapabilitiesResolver.resolve(viewer, area, detail.activeAssignment(area))
+
+    /** Hay al menos un área donde se puede agendar una cita para este paciente. */
+    val canSchedule: Boolean
+        get() = ClinicalArea.entries.any { capabilities(it).canSchedule }
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PatientDetailViewModel(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val patientRepository: PatientRepository,
     private val clock: Clock,
 ) : ViewModel() {
-    private val patientId = savedStateHandle.toRoute<AppRoute.PatientDetail>().patientId
+    private val route = savedStateHandle.toRoute<AppRoute.PatientDetail>()
+    private val patientId = route.patientId
+    private val initialArea = route.area?.let { code -> ClinicalArea.entries.firstOrNull { it.name == code } }
     private val reloadCount = MutableStateFlow(0)
+
+    /**
+     * Pestaña abierta del expediente (nombre de la sección). Vive aquí y no en la pantalla porque al volver de un
+     * formulario la pantalla se recompone desde cero y la persona debe regresar a la sección donde estaba.
+     */
+    val selectedTab: StateFlow<String> = savedStateHandle.getStateFlow(TAB_KEY, initialArea?.name ?: DEFAULT_TAB)
 
     /** Vacío significa que el paciente no existe. */
     val state: StateFlow<UiState<PatientDetailContent>> = reloadCount
         .flatMapLatest {
-            patientRepository.observePatientDetail(patientId)
-                .map<PatientDetail?, UiState<PatientDetailContent>> { detail ->
-                    if (detail == null) {
-                        UiState.Empty
-                    } else {
-                        UiState.Content(PatientDetailContent(detail, LocalDate.now(clock), clock.instant()))
-                    }
+            authRepository.currentUser
+                .filterNotNull()
+                .flatMapLatest { viewer ->
+                    patientRepository.observePatientDetail(patientId, viewer)
+                        .map<PatientDetail?, UiState<PatientDetailContent>> { detail ->
+                            if (detail == null) {
+                                UiState.Empty
+                            } else {
+                                UiState.Content(PatientDetailContent(detail, LocalDate.now(clock), clock.instant(), viewer, initialArea))
+                            }
+                        }
                 }
                 .onStart { emit(UiState.Loading) }
                 .catch { emit(UiState.Error(it)) }
@@ -57,6 +90,10 @@ class PatientDetailViewModel(
 
     init {
         recordView()
+    }
+
+    fun selectTab(tab: String) {
+        savedStateHandle[TAB_KEY] = tab
     }
 
     fun retry() {
@@ -68,8 +105,8 @@ class PatientDetailViewModel(
     private fun recordView() {
         viewModelScope.launch {
             runCatchingCancellable {
-                patientRepository.observePatientDetail(patientId).filterNotNull().first()
                 val actor = authRepository.currentUser.filterNotNull().first()
+                patientRepository.observePatientDetail(patientId, actor).filterNotNull().first()
                 patientRepository.recordPatientViewed(patientId, actor.userId)
             }
         }
@@ -77,5 +114,7 @@ class PatientDetailViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+        const val TAB_KEY = "detail_tab"
+        const val DEFAULT_TAB = "SUMMARY"
     }
 }
