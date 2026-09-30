@@ -17,9 +17,27 @@ android {
         versionName = "0.1.0-beta"
     }
 
+    // La firma de release se lee SOLO de variables de entorno del proceso de build; nada de esto vive en el repo.
+    // Sin las cuatro variables el release sale sin firmar y el debug no cambia.
+    val releaseSigningEnv = listOf("CRNL_KEYSTORE_FILE", "CRNL_KEYSTORE_PASSWORD", "CRNL_KEY_ALIAS", "CRNL_KEY_PASSWORD")
+        .associateWith { System.getenv(it) }
+    val hasReleaseSigning = releaseSigningEnv.values.all { !it.isNullOrBlank() }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseSigningEnv.getValue("CRNL_KEYSTORE_FILE")!!)
+                storePassword = releaseSigningEnv.getValue("CRNL_KEYSTORE_PASSWORD")
+                keyAlias = releaseSigningEnv.getValue("CRNL_KEY_ALIAS")
+                keyPassword = releaseSigningEnv.getValue("CRNL_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
 

@@ -32,6 +32,19 @@ La Beta funciona sin conexión: todo el almacenamiento es local y los datos prec
 
 En Windows usa `gradlew.bat`. El APK queda en `app/build/outputs/apk/debug/app-debug.apk`. La primera corrida de pruebas descarga el JAR de Android que usa Robolectric.
 
+## Versión y distribución
+
+`0.1.0-beta` (`versionCode 1`). Las notas de la versión están en [`docs/RELEASE_NOTES_0.1.0-beta.md`](docs/RELEASE_NOTES_0.1.0-beta.md) y el APK firmado se publica como *pre-release* en GitHub Releases junto con su `.sha256`; el APK nunca se versiona en Git.
+
+```bash
+./gradlew :app:assembleRelease :app:lintRelease
+```
+
+- La firma de `release` se lee **solo** de cuatro variables de entorno del proceso de compilación: `CRNL_KEYSTORE_FILE`, `CRNL_KEYSTORE_PASSWORD`, `CRNL_KEY_ALIAS` y `CRNL_KEY_PASSWORD`. Si falta alguna, el `release` se genera sin firmar y `debug` no cambia.
+- El almacén de llaves y sus contraseñas viven fuera del repositorio y no se copian a Gradle, a los recursos, al APK ni a la documentación (`*.jks`, `release.env` y `signing.properties` están en `.gitignore`).
+- Un APK firmado con la llave de la Beta no se instala sobre uno de depuración: se desinstala el anterior primero (los datos locales se pierden).
+- Verificación: `apksigner verify --print-certs app-release.apk` y comparar `sha256` con el archivo publicado.
+
 ## Arquitectura
 
 ```text

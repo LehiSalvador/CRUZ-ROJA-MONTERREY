@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -140,10 +141,19 @@ fun RequestCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Con fuentes grandes el chip se lleva media tarjeta y parte el nombre a mitad de palabra: pasa debajo del título.
+    val stacked = LocalDensity.current.fontScale > 1.3f
     ClinicalCard(modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, onClick = onClick) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
-            Text(text = title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            StatusChip(label = statusLabel, tone = statusTone, singleLine = false)
+        if (stacked) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall)
+                StatusChip(label = statusLabel, tone = statusTone, singleLine = false)
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
+                Text(text = title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                StatusChip(label = statusLabel, tone = statusTone, singleLine = false)
+            }
         }
         lines.forEach { line ->
             Text(
